@@ -26,13 +26,14 @@ jobs:
           # Verificar que todo está listo
           echo "=== Estructura de deploy ===" && find deploy -type f | sort
 
-      - name: Subir a Hostinger vía FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_HOST }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASS }}
-          port: 21
-          local-dir: deploy/
-          server-dir: public_html/
-          dangerous-clean-slate: true
+      - name: Instalar lftp
+        run: sudo apt-get install -y lftp
+
+      - name: Subir a Hostinger vía FTP (lftp recursivo)
+        run: |
+          lftp -u "${{ secrets.FTP_USER }}","${{ secrets.FTP_PASS }}" "${{ secrets.FTP_HOST }}" << 'FTPEOF'
+          set ssl:verify-certificate no
+          set ftp:passive-mode yes
+          mirror --reverse --delete --verbose deploy/ public_html/
+          bye
+          FTPEOF
