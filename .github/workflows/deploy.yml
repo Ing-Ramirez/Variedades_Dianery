@@ -30,10 +30,10 @@ jobs:
         run: sudo apt-get install -y lftp
 
       - name: Subir a Hostinger vía FTP (lftp recursivo)
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
         run: |
-          lftp -u "${{ secrets.FTP_USER }}","${{ secrets.FTP_PASS }}" "${{ secrets.FTP_HOST }}" << 'FTPEOF'
-          set ssl:verify-certificate no
-          set ftp:passive-mode yes
-          mirror --reverse --delete --verbose deploy/ public_html/
-          bye
-          FTPEOF
+          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" \
+            -e "set ssl:verify-certificate no; set ftp:passive-mode yes; mirror --reverse --delete --verbose deploy/ public_html/; bye"
