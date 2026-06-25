@@ -14,12 +14,17 @@ jobs:
 
       - name: Preparar archivos para producción
         run: |
-          mkdir -p deploy
+          mkdir -p deploy/admin deploy/components deploy/uploads
           # Renombrar el HTML principal a index.html
           cp "Variedades Dianery.html" deploy/index.html
-          # Copiar archivos del sitio (sin Docker, CLAUDE, README)
+          # Archivos raíz
           cp app.jsx config.js dianery-data.js footer.css styles.css tweaks-panel.jsx deploy/
-          cp -r admin components uploads deploy/
+          # Subcarpetas explícitas para garantizar que FTP las sube
+          cp -r admin/. deploy/admin/
+          cp -r components/. deploy/components/
+          [ -d uploads ] && cp -r uploads/. deploy/uploads/ || true
+          # Verificar que todo está listo
+          echo "=== Estructura de deploy ===" && find deploy -type f | sort
 
       - name: Subir a Hostinger vía FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -30,4 +35,4 @@ jobs:
           port: 21
           local-dir: deploy/
           server-dir: public_html/
-          dangerous-clean-slate: false
+          dangerous-clean-slate: true
