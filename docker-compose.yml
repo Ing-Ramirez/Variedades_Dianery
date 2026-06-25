@@ -1,0 +1,8 @@
+services:
+  web:
+    build: .
+    image: variedades-dianery
+    container_name: variedades-dianery
+    ports:
+      - "8080:80"
+    restart: unless-stopped

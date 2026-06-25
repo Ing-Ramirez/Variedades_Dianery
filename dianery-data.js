@@ -5,6 +5,10 @@
    ============================================================ */
 (function () {
   const KEY = "dianery_store_v1";
+  const CART_KEY = "dianery_cart_v1";
+
+  const MAX_IMAGES = 5;
+  const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
   const SEED = {
     config: {
@@ -91,8 +95,37 @@
   if (!state) { state = deepClone(SEED); save(); }
 
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    let ok = true;
+    try { localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch (e) { ok = false; } // p. ej. cuota de localStorage superada
     window.dispatchEvent(new CustomEvent("dianery:change"));
+    return ok;
+  }
+
+  // ---- Carrito (clave aparte, solo tienda) ----
+  function loadCart() {
+    try { return JSON.parse(localStorage.getItem(CART_KEY)) || []; } catch (e) { return []; }
+  }
+  let cart = loadCart();
+  function saveCart() {
+    try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch (e) {}
+    window.dispatchEvent(new CustomEvent("dianery:cart"));
+  }
+
+  // ---- Validación de producto ----
+  function isNum(v) { return v !== "" && v !== null && v !== undefined && !isNaN(Number(v)); }
+  function validateProduct(p) {
+    const errors = [];
+    if (!p.name || !String(p.name).trim()) errors.push("El nombre es obligatorio.");
+    if (!p.tag || !String(p.tag).trim()) errors.push("La categoría es obligatoria.");
+    if (!p.sku || !String(p.sku).trim()) errors.push("El SKU es obligatorio.");
+    if (!isNum(p.price)) errors.push("El precio es obligatorio y debe ser numérico.");
+    else if (Number(p.price) < 0) errors.push("El precio no puede ser negativo.");
+    if (!isNum(p.stock)) errors.push("El stock es obligatorio y debe ser numérico.");
+    else if (Number(p.stock) < 0) errors.push("El stock no puede ser negativo.");
+    if (typeof p.active !== "boolean") errors.push("El estado debe ser activo o inactivo.");
+    if ((p.images || []).length > MAX_IMAGES) errors.push("Máximo " + MAX_IMAGES + " imágenes por producto.");
+    return errors;
   }
 
   // ---- API ----
@@ -106,17 +139,41 @@
 
     saveConfig(patch) { state.config = { ...state.config, ...patch }; save(); },
 
+    MAX_IMAGES,
+    ALLOWED_IMAGE_TYPES,
+    validateProduct,
+
+    // Categorías presentes en el catálogo (opcionalmente solo activos)
+    getCategories(onlyActive) {
+      const src = onlyActive ? state.products.filter(p => p.active) : state.products;
+      return [...new Set(src.map(p => p.tag).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
+    },
+
+    // Devuelve { ok, errors, product }. No persiste si la validación falla.
     upsertProduct(p) {
-      if (p.id) {
-        const i = state.products.findIndex(x => x.id === p.id);
-        if (i >= 0) state.products[i] = { ...state.products[i], ...p };
-        else state.products.push(p);
+      const errors = validateProduct(p);
+      if (errors.length) return { ok: false, errors, product: null };
+      const clean = {
+        ...p,
+        name: String(p.name).trim(),
+        tag: String(p.tag).trim(),
+        sku: String(p.sku).trim(),
+        desc: String(p.desc || "").trim(),
+        price: Number(p.price),
+        stock: Number(p.stock),
+        active: !!p.active,
+        images: (p.images || []).slice(0, MAX_IMAGES)
+      };
+      if (clean.id) {
+        const i = state.products.findIndex(x => x.id === clean.id);
+        if (i >= 0) state.products[i] = { ...state.products[i], ...clean };
+        else state.products.push(clean);
       } else {
-        p.id = "p" + Date.now();
-        state.products.push(p);
+        clean.id = "p" + Date.now();
+        state.products.push(clean);
       }
-      save();
-      return p;
+      const saved = save();
+      return { ok: saved, errors: saved ? [] : ["No se pudo guardar: almacenamiento del navegador lleno. Reduce el tamaño o número de imágenes."], product: clean };
     },
     deleteProduct(id) { state.products = state.products.filter(p => p.id !== id); save(); },
 
@@ -130,6 +187,84 @@
     formatCOP(n) {
       return "$" + Number(n || 0).toLocaleString("es-CO");
     },
+
+    // ---- Carrito ----
+    getCart() { return cart; },
+    // Devuelve líneas con datos del producto resueltos (omite productos borrados/inactivos)
+    getCartDetailed() {
+      return cart.map(line => {
+        const p = state.products.find(x => x.id === line.id);
+        return p ? { ...line, product: p } : null;
+      }).filter(Boolean);
+    },
+    cartCount() { return cart.reduce((n, l) => n + l.qty, 0); },
+    cartTotal() {
+      return cart.reduce((sum, l) => {
+        const p = state.products.find(x => x.id === l.id);
+        return sum + (p ? p.price * l.qty : 0);
+      }, 0);
+    },
+    // Devuelve false si no hay stock disponible para agregar
+    addToCart(id, qty = 1) {
+      const p = state.products.find(x => x.id === id);
+      if (!p || !p.active) return false;
+      const max = Math.max(0, p.stock);
+      const line = cart.find(l => l.id === id);
+      const current = line ? line.qty : 0;
+      const room = max - current;
+      if (room <= 0) return false;             // ya alcanzó el stock
+      const add = Math.min(qty, room);
+      if (line) line.qty = current + add;
+      else cart.push({ id, qty: add });
+      saveCart();
+      return true;
+    },
+    setCartQty(id, qty) {
+      const line = cart.find(l => l.id === id);
+      if (!line) return;
+      if (qty <= 0) cart = cart.filter(l => l.id !== id);
+      else line.qty = qty;
+      saveCart();
+    },
+    removeFromCart(id) { cart = cart.filter(l => l.id !== id); saveCart(); },
+    clearCart() { cart = []; saveCart(); },
+
+    // ---- WhatsApp (número configurable desde Admin → Contacto) ----
+    getWhatsappNumber() {
+      const raw = (state.config.contact && state.config.contact.whatsapp) || "";
+      return raw.replace(/\D/g, "");
+    },
+    buildOrderMessage() {
+      const brand = state.config.brandName || "la tienda";
+      const lines = this.getCartDetailed();
+      let msg = `Hola, quiero hacer este pedido en ${brand}:\n\n`;
+      lines.forEach((l, i) => {
+        const sub = l.product.price * l.qty;
+        msg += `${i + 1}. ${l.product.name}\n`;
+        msg += `Cantidad: ${l.qty}\n`;
+        msg += `Precio unitario: ${this.formatCOP(l.product.price)}\n`;
+        msg += `Subtotal: ${this.formatCOP(sub)}\n\n`;
+      });
+      msg += `Total: ${this.formatCOP(this.cartTotal())}\n\n`;
+      msg += "Quedo atento/a para confirmar disponibilidad, entrega y forma de pago.";
+      return msg;
+    },
+    whatsappOrderUrl() {
+      return `https://wa.me/${this.getWhatsappNumber()}?text=${encodeURIComponent(this.buildOrderMessage())}`;
+    },
+    whatsappProductUrl(p) {
+      const brand = state.config.brandName || "la tienda";
+      const msg = `Hola, quiero consultar por este producto de ${brand}:\n\n` +
+        `${p.name} (SKU ${p.sku})\nPrecio: ${this.formatCOP(p.price)}\n\n¿Está disponible?`;
+      return `https://wa.me/${this.getWhatsappNumber()}?text=${encodeURIComponent(msg)}`;
+    },
+    onCartChange(fn) {
+      const h = () => fn(cart);
+      window.addEventListener("dianery:cart", h);
+      window.addEventListener("storage", (e) => { if (e.key === CART_KEY) { cart = loadCart(); fn(cart); } });
+      return h;
+    },
+
     onChange(fn) {
       const h = () => fn(state);
       window.addEventListener("dianery:change", h);

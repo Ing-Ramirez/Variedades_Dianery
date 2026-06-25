@@ -1,0 +1,33 @@
+name: Deploy a Hostinger
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Preparar archivos para producción
+        run: |
+          mkdir -p deploy
+          # Renombrar el HTML principal a index.html
+          cp "Variedades Dianery.html" deploy/index.html
+          # Copiar archivos del sitio (sin Docker, CLAUDE, README)
+          cp app.jsx config.js dianery-data.js footer.css styles.css tweaks-panel.jsx deploy/
+          cp -r admin components uploads deploy/
+
+      - name: Subir a Hostinger vía FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          port: 21
+          local-dir: deploy/
+          server-dir: public_html/
+          dangerous-clean-slate: false

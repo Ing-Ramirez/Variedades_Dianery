@@ -240,6 +240,51 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 }
 .toast svg { width: 17px; height: 17px; color: #6ee7a8; }
 
+/* ---------- Errores de formulario ---------- */
+.form-errors {
+  background: var(--red-soft); border: 1px solid #f0c9c4; border-radius: 8px;
+  padding: 12px 14px; margin-bottom: 18px; font-size: 13px; color: var(--red);
+}
+.form-errors strong { display: block; margin-bottom: 6px; }
+.form-errors ul { margin: 0; padding-left: 18px; }
+.form-errors li { margin: 2px 0; }
+
+/* ---------- Gestor de imágenes ---------- */
+.img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 8px 0 4px; }
+.img-thumb {
+  position: relative; aspect-ratio: 1/1; border-radius: 9px; overflow: hidden;
+  border: 1px solid var(--line); background: var(--line-2);
+}
+.img-thumb.is-main { border-color: var(--brand); box-shadow: 0 0 0 2px var(--brand-soft); }
+.img-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.img-main-badge {
+  position: absolute; top: 6px; left: 6px; z-index: 2;
+  font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  background: var(--brand); color: #fff; padding: 3px 7px; border-radius: 6px;
+}
+.img-actions {
+  position: absolute; inset: auto 0 0 0; display: flex; gap: 4px; justify-content: center;
+  padding: 6px; background: linear-gradient(transparent, rgba(0,0,0,.55));
+  opacity: 0; transition: opacity .15s;
+}
+.img-thumb:hover .img-actions { opacity: 1; }
+.img-actions button {
+  width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
+  background: rgba(255,255,255,.92); color: var(--ink);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.img-actions button svg { width: 14px; height: 14px; }
+.img-actions button:disabled { opacity: .4; cursor: not-allowed; }
+.img-actions button.danger:hover { background: var(--red); color: #fff; }
+.img-add {
+  aspect-ratio: 1/1; border: 1.5px dashed var(--line); border-radius: 9px;
+  background: var(--surface); color: var(--ink-3); cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  font-size: 12.5px; font-weight: 500;
+}
+.img-add svg { width: 20px; height: 20px; }
+.img-add:hover { border-color: var(--brand); color: var(--brand); }
+
 @media (max-width: 920px) {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .dash-grid { grid-template-columns: 1fr; }

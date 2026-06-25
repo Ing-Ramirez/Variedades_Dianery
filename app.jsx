@@ -1,6 +1,22 @@
 /* App — ensambla la página desde siteConfig + Tweaks */
 const { useTweaks, TweaksPanel, TweakSection, TweakColor, TweakRadio, TweakToggle, TweakSlider } = window;
-const { Header, Banner, Catalog, ClosingCampaign, Footer, FloatingChat } = window;
+const { Header, Banner, Catalog, ClosingCampaign, Footer, FloatingChat, ProductDetail, CartDrawer, ShopToast } = window;
+
+/* Re-renderiza cuando cambian datos o carrito (admin escribe, tienda refleja) */
+function useStoreData() {
+  const [, setRev] = React.useState(0);
+  React.useEffect(() => {
+    const h = () => setRev(r => r + 1);
+    window.addEventListener("dianery:change", h);
+    window.addEventListener("dianery:cart", h);
+    window.addEventListener("storage", h);
+    return () => {
+      window.removeEventListener("dianery:change", h);
+      window.removeEventListener("dianery:cart", h);
+      window.removeEventListener("storage", h);
+    };
+  }, []);
+}
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "accent": "#a8775a",
@@ -19,7 +35,18 @@ const FOOTER_THEMES = {
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const cfg = window.siteConfig;
+  const D = window.DianeryData;
   const ft = FOOTER_THEMES[t.footerTheme] || FOOTER_THEMES.espresso;
+
+  useStoreData();
+  const [query, setQuery] = React.useState("");
+  const [detail, setDetail] = React.useState(null);
+  const [cartOpen, setCartOpen] = React.useState(false);
+
+  const addToCart = (p) => {
+    if (D.addToCart(p.id, 1)) window.shopToast && window.shopToast(`"${p.name}" agregado al carrito`);
+    else window.shopToast && window.shopToast("No hay stock suficiente");
+  };
 
   React.useEffect(() => {
     const r = document.documentElement.style;
@@ -35,12 +62,17 @@ function App() {
 
   return (
     <React.Fragment>
-      <Header brand={cfg.brand} />
+      <Header brand={cfg.brand} query={query} onQuery={setQuery}
+        cartCount={D.cartCount()} onCartClick={() => setCartOpen(true)} />
       <Banner catalog={cfg.catalog} />
-      <Catalog catalog={cfg.catalog} />
+      <Catalog query={query} onOpenDetail={setDetail} onAddToCart={addToCart} />
       <ClosingCampaign data={closing} />
       <Footer data={cfg.footer} brand={cfg.brand} />
       <FloatingChat data={chat} />
+
+      <ProductDetail product={detail} onClose={() => setDetail(null)} onAddToCart={addToCart} />
+      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
+      <ShopToast />
 
       <TweaksPanel title="Tweaks">
         <TweakSection label="Marca" />

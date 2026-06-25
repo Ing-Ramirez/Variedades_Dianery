@@ -2,45 +2,58 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## What this is
+## Qué es esto
 
-A static, build-less React prototype of the "Variedades Dianery" storefront (Spanish-language store of assorted home/lifestyle goods). It is a design prototype, not the production site — the production site is a separate WordPress theme in the sibling `../Variedades_Dianery/` directory (see its own CLAUDE.md). This prototype shares the brand and visual direction but no code.
+Prototipo de "Variedades Dianery" (tienda de variedades en español) construido como app React **sin paso de compilación**: React 18 + ReactDOM + Babel Standalone se cargan desde CDN y el navegador compila los `.jsx` (`type="text/babel"`) en tiempo de carga. Son dos apps independientes que comparten marca:
 
-## Running
+- **Tienda** — `Variedades Dianery.html`: escaparate público (header, banner, catálogo, cierre de campaña, footer, chat flotante).
+- **Admin** — `admin/Admin.html`: panel de gestión (resumen, productos, pedidos, clientes, configuración).
 
-There is **no build step, no npm, no package.json, no tests**. React, ReactDOM, and Babel Standalone are loaded from CDN in `Variedades Dianery.html`, which compiles the `type="text/babel"` JSX modules in the browser at load time.
+No hay `package.json`, `npm`, bundler ni tests.
 
-To view: open `Variedades Dianery.html` in a browser, or serve the folder over a static server (the `<script src>` tags are relative, so `file://` works but a local server avoids any cross-origin surprises).
+## Cómo ejecutarlo
 
-## Architecture
+**Debe servirse por HTTP** — con `file://` no funciona porque los `.jsx` se cargan por red:
 
-### Globals, not imports
-This is pre-bundler React. There is no module system — every file attaches its exports to `window` (`Object.assign(window, {...})` or `window.Ic = ...`) and later files destructure them back off `window`. **Script order in `Variedades Dianery.html` is the dependency graph** and is load-bearing:
+```bash
+npx serve .        # o cualquier servidor estático apuntando a la raíz
+```
 
-1. `config.js` → `window.siteConfig`
-2. `tweaks-panel.jsx` → Tweak* controls + `useTweaks`
-3. `components/Icons.jsx` → `window.Ic`
-4. `components/Top.jsx` → `Header`, `Banner`, `Catalog`
-5. `components/Bottom.jsx` → `ClosingCampaign`, `Footer`, `FloatingChat`
-6. `app.jsx` → `App`, mounts to `#root`
+- Tienda: `/Variedades Dianery.html` (o `/`)
+- Admin: `/admin/Admin.html`
 
-Adding a component means: write it, `Object.assign(window, {...})` it, and add a `<script type="text/babel">` tag in the correct order in the HTML.
+## Arquitectura
 
-### Content lives in config.js, never in components
-`config.js` (`window.siteConfig`) is the single source of all copy, nav, products, footer columns, contact info, legal text — all in Spanish. Components are pure presentation: they receive a slice of `siteConfig` as props and render it. To change wording or add a product, edit `config.js`, not the component.
+### Globals, no imports
+React pre-bundler: no hay sistema de módulos. Cada archivo cuelga sus exports de `window` (`Object.assign(window, {...})` o `window.X = ...`) y los siguientes los destructuran de vuelta. **El orden de los `<script>` en cada HTML es la cadena de dependencias** y es load-bearing. Añadir un componente = escribirlo, exponerlo en `window`, y agregar su `<script type="text/babel">` en el orden correcto del HTML.
 
-### The Tweaks panel + EDITMODE protocol
-`tweaks-panel.jsx` is a reusable design-tool scaffold ("omelette" starter) for live-editing the prototype inside a host editor. Key pieces:
+Orden en `Variedades Dianery.html`: `config.js` → `tweaks-panel.jsx` → `components/Icons.jsx` → `components/Top.jsx` → `components/Bottom.jsx` → `app.jsx`.
 
-- `App` defines `TWEAK_DEFAULTS` wrapped in a literal `/*EDITMODE-BEGIN*/{ ... }/*EDITMODE-END*/` comment fence. The host editor rewrites the JSON **inside that fence on disk** when a tweak changes — keep it valid JSON and keep the fence markers intact.
-- `useTweaks(defaults)` returns `[values, setTweak]`. `setTweak` updates React state *and* `postMessage`s `__edit_mode_set_keys` to `window.parent` (the host persists it) and dispatches a same-window `tweakchange` event.
-- `TweaksPanel` speaks the host protocol: posts `__edit_mode_available`, listens for `__activate_edit_mode`/`__deactivate_edit_mode`, posts `__edit_mode_dismissed`. It registers its message listener before announcing availability — don't reorder that.
-- Tweaks are applied in `app.jsx` mostly by writing CSS custom properties (`--accent`, `--footer-bg`, `--radius`, …) onto `document.documentElement` in a `useEffect`, so styling stays in `styles.css`/`footer.css` and JS only sets variables.
+Orden en `admin/Admin.html`: `../dianery-data.js` → `AdminIcons.jsx` → `Common.jsx` → vistas (`Dashboard`/`Products`/`Orders`/`Customers`/`Settings`) → `AdminShell.jsx` (monta en `#root`).
 
-Reuse the provided `Tweak*` controls (`TweakColor`, `TweakSlider`, `TweakRadio`, `TweakToggle`, `TweakSelect`, `TweakText`, `TweakNumber`, `TweakButton`) rather than hand-rolling inputs. For color tweaks, curate 3–4 options instead of a free picker. The `@ds-adherence-ignore` banner at the top of the file is intentional — that file is allowed raw hex/px.
+### Dos fuentes de datos
+- **`dianery-data.js` → `window.DianeryData`**: fuente de verdad de **productos, carrito y configuración**, persistida en `localStorage` (`dianery_store_v1` para la tienda/admin, `dianery_cart_v1` para el carrito; seed la primera vez). Lo consumen **tanto el admin como el catálogo de la tienda**. API: `getConfig/getProducts/getOrders/getCustomers/getMetrics/getCategories`, `saveConfig`, `validateProduct`, `upsertProduct` (valida y devuelve `{ok, errors, product}`), `deleteProduct`, `setOrderStatus`, carrito (`getCart/getCartDetailed/cartCount/cartTotal/addToCart/setCartQty/removeFromCart/clearCart/onCartChange`), WhatsApp (`getWhatsappNumber/buildOrderMessage/whatsappOrderUrl/whatsappProductUrl`), `reset`, `formatCOP`, `onChange`. Cada mutación de catálogo dispara `dianery:change`; cada mutación de carrito dispara `dianery:cart`. La tienda se re-renderiza ante ambos (hook `useStoreData` en `app.jsx`).
+- **`config.js` → `window.siteConfig`**: copy **estático** de la tienda que aún no se administra (nav del header, textos del banner, columnas/legal del footer). El catálogo de productos **ya NO** sale de aquí. El número de WhatsApp configurable sale de `DianeryData.getConfig().contact.whatsapp` (Admin → Contacto), no de `siteConfig`.
 
-### Styling
-Plain CSS in `styles.css` (layout, header, catalog, cards) and `footer.css` (footer + floating chat). Theming is driven by CSS custom properties on `:root`/`documentElement` set from tweaks. `Variedades Dianery.html` loads Google Fonts (Spectral + Archivo).
+Imágenes: cada producto admite hasta 5 (`product.images`, data URLs reescalados a ≤1200px en el navegador); la primera es la principal. Validación de formato (JPG/PNG/WEBP) y límite en `Products.jsx` (`readImageFile`/`ImageManager`).
 
-### Icons
-`components/Icons.jsx` exposes `window.Ic`, a flat map of inline-SVG components (UI glyphs, social, contact). Footer/social rendering filters by `Ic[iconName]` existing, so an icon must be added here before it can be referenced from `config.js`.
+### Admin: router por hash + re-render reactivo
+`AdminShell.jsx` es un router simple por `window.location.hash` (`#dashboard`, `#productos`, …) que monta la vista activa. Las vistas se re-renderizan al cambiar los datos vía el hook `useData()` (`Common.jsx`), que escucha `dianery:change` y devuelve `DianeryData`. `Common.jsx` también provee helpers compartidos: `StatusBadge`, `StockCell`, `ORDER_STATUSES`, y un toast global (`useToast`/`Toast` + `window.adminToast(msg)`).
+
+### El panel de Tweaks + protocolo EDITMODE (solo tienda)
+`tweaks-panel.jsx` es un scaffold de herramienta de diseño para edición en vivo dentro de un editor host:
+
+- `app.jsx` define `TWEAK_DEFAULTS` envuelto en un comentario literal `/*EDITMODE-BEGIN*/{ ... }/*EDITMODE-END*/`. El host reescribe el JSON **dentro de esa valla en disco** al cambiar un tweak — mantenlo como JSON válido y conserva los marcadores.
+- `useTweaks(defaults)` devuelve `[values, setTweak]`. `setTweak` actualiza estado React, hace `postMessage` `__edit_mode_set_keys` a `window.parent`, y emite un evento `tweakchange`.
+- `TweaksPanel` habla el protocolo del host (`__edit_mode_available`, `__activate_edit_mode`/`__deactivate_edit_mode`, `__edit_mode_dismissed`); registra su listener antes de anunciar disponibilidad — no reordenar.
+- Los tweaks se aplican en `app.jsx` escribiendo CSS custom properties (`--accent`, `--footer-bg`, `--radius`, …) sobre `document.documentElement` en un `useEffect`, así el styling vive en `styles.css`/`footer.css` y el JS solo setea variables.
+
+Reutiliza los controles `Tweak*` (`TweakColor`, `TweakSlider`, `TweakRadio`, `TweakToggle`, `TweakSelect`, `TweakText`, `TweakNumber`, `TweakButton`) en vez de inputs propios. Para colores, curar 3–4 opciones en vez de un picker libre. El banner `@ds-adherence-ignore` al inicio del archivo es intencional: ese archivo puede usar hex/px crudos.
+
+### Estilos e iconos
+- CSS plano: tienda en `styles.css` + `footer.css`; admin en `admin/admin.css`. El theming se maneja por CSS custom properties en `:root`/`documentElement`.
+- Iconos como SVG inline: tienda en `components/Icons.jsx` (`window.Ic`), admin en `admin/AdminIcons.jsx` (`window.AdminIcons`). Un icono debe existir aquí antes de poder referenciarlo (p. ej. el footer filtra por `Ic[iconName]` existente).
+
+## Convenciones
+- Todo el contenido visible es en **español**; moneda en COP (formateada con `formatCOP` / `toLocaleString("es-CO")`).
+- Estados de pedido (orden del flujo): Nuevo → Preparando → Enviado → Entregado / Cancelado.
