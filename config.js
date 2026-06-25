@@ -42,42 +42,9 @@ window.siteConfig = {
   },
 
   footer: {
-    columns: [
-      {
-        title: "Conoce la tienda",
-        links: [
-          { label: "Nuestra historia", href: "#" },
-          { label: "Reconocimientos", href: "#" },
-          { label: "Contáctanos", href: "#" },
-          { label: "Blog", href: "#" }
-        ]
-      },
-      {
-        title: "Productos",
-        links: [
-          { label: "Todas las variedades", href: "#" },
-          { label: "Nuevos lanzamientos", href: "#" },
-          { label: "Ofertas", href: "#" },
-          { label: "Cambios y devoluciones", href: "#" }
-        ]
-      },
-      {
-        title: "Compromiso",
-        links: [
-          { label: "Causas sociales", href: "#" },
-          { label: "Comercio justo", href: "#" },
-          { label: "Sostenibilidad", href: "#" }
-        ]
-      },
-      {
-        title: "Ayuda",
-        links: [
-          { label: "Preguntas frecuentes", href: "#" },
-          { label: "Envíos y entregas", href: "#" },
-          { label: "Métodos de pago", href: "#" }
-        ]
-      }
-    ],
+    // Columnas de enlaces ocultas (eran placeholders sin página real).
+    // Para mostrarlas de nuevo, agrega objetos { title, links: [{ label, href }] }.
+    columns: [],
 
     contact: {
       title: "Línea de atención",
@@ -98,12 +65,8 @@ window.siteConfig = {
       companyName: "Variedades Dianery S.A.S.",
       taxId: "NIT 901.000.000-0",
       year: "2026",
-      links: [
-        { label: "Términos y condiciones", href: "#" },
-        { label: "Política de privacidad", href: "#" },
-        { label: "Cambios y devoluciones", href: "#" },
-        { label: "Tratamiento de datos", href: "#" }
-      ]
+      // Enlaces legales ocultos (eran placeholders sin página real).
+      links: []
     }
   },
 
