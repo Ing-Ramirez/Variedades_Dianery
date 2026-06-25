@@ -1,0 +1,69 @@
+name: CI — Desarrollo
+
+on:
+  push:
+    branches-ignore: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validar:
+    name: Validar código
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar validadores
+        run: npm install --save-dev @babel/core @babel/preset-react
+
+      - name: Validar sintaxis JSX
+        run: |
+          cat > babel.config.json << 'EOF'
+          { "presets": ["@babel/preset-react"] }
+          EOF
+
+          FAILED=0
+          for f in app.jsx tweaks-panel.jsx components/*.jsx admin/*.jsx; do
+            echo -n "Verificando $f ... "
+            node -e "
+              const babel = require('@babel/core');
+              const fs = require('fs');
+              try {
+                babel.transformSync(fs.readFileSync('$f','utf8'), {filename:'$f'});
+                console.log('OK');
+              } catch(e) {
+                console.error('ERROR: ' + e.message);
+                process.exit(1);
+              }
+            " || FAILED=1
+          done
+          exit $FAILED
+
+      - name: Verificar archivos referenciados en HTML
+        run: |
+          FAILED=0
+          for html in "Variedades Dianery.html" admin/Admin.html; do
+            echo "Revisando $html..."
+            grep -oP '(?<=src=")[^"]+(?=")' "$html" | grep -v 'cdn\|http' | while read src; do
+              if [ ! -f "$src" ]; then
+                echo "  ❌ Falta: $src"
+                FAILED=1
+              else
+                echo "  ✅ $src"
+              fi
+            done
+          done
+          exit $FAILED
+
+      - name: Detectar console.log en desarrollo
+        run: |
+          COUNT=$(grep -rn "console\.log" app.jsx components/ admin/ dianery-data.js 2>/dev/null | wc -l)
+          echo "console.log encontrados: $COUNT"
+          if [ "$COUNT" -gt 10 ]; then
+            echo "⚠️ Demasiados console.log ($COUNT). Considera limpiarlos antes de producción."
+          fi

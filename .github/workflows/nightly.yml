@@ -1,0 +1,50 @@
+name: Apoyo nocturno
+
+on:
+  schedule:
+    - cron: '0 5 * * *'  # Todos los días a las 5am UTC (medianoche Colombia)
+  workflow_dispatch:
+
+jobs:
+  revision-nocturna:
+    name: Revisión automática nocturna
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verificar integridad de archivos del sitio
+        run: |
+          echo "=== Revisión nocturna — $(date '+%Y-%m-%d') ==="
+          CRITICAL="app.jsx config.js dianery-data.js styles.css footer.css tweaks-panel.jsx Variedades Dianery.html"
+          ALL_OK=true
+          for f in $CRITICAL; do
+            if [ ! -f "$f" ]; then
+              echo "❌ Archivo crítico faltante: $f"
+              ALL_OK=false
+            fi
+          done
+          $ALL_OK && echo "✅ Todos los archivos críticos presentes"
+
+      - name: Contar líneas de código
+        run: |
+          echo "=== Métricas del proyecto ==="
+          echo "JSX:"
+          find . -name "*.jsx" ! -path "./.git/*" | xargs wc -l 2>/dev/null | tail -1
+          echo "JS:"
+          find . -name "*.js" ! -path "./.git/*" | xargs wc -l 2>/dev/null | tail -1
+          echo "CSS:"
+          find . -name "*.css" ! -path "./.git/*" | xargs wc -l 2>/dev/null | tail -1
+          echo "Imágenes en uploads:"
+          find uploads/ -type f 2>/dev/null | wc -l
+
+      - name: Verificar que el último deploy fue exitoso
+        run: |
+          LAST=$(gh run list --workflow=deploy.yml --limit=1 --json conclusion -q '.[0].conclusion' 2>/dev/null || echo "unknown")
+          echo "Último deploy automático: $LAST"
+          if [ "$LAST" = "failure" ]; then
+            echo "⚠️  El último deploy automático falló. Revisar Actions."
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}

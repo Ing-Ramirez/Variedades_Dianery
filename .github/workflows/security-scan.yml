@@ -1,0 +1,66 @@
+name: Escaneo de seguridad
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 3 * * 1'  # Lunes a las 3am UTC
+
+jobs:
+  seguridad:
+    name: Análisis de seguridad
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Buscar credenciales expuestas
+        run: |
+          FAILED=0
+          echo "Buscando posibles credenciales o datos sensibles..."
+
+          # Patrones sospechosos
+          PATTERNS=(
+            "password\s*=\s*['\"][^'\"]{4,}"
+            "secret\s*=\s*['\"][^'\"]{4,}"
+            "api[_-]key\s*=\s*['\"][^'\"]{8,}"
+            "token\s*=\s*['\"][^'\"]{8,}"
+            "private[_-]key"
+          )
+
+          for pattern in "${PATTERNS[@]}"; do
+            HITS=$(grep -riE "$pattern" --include="*.js" --include="*.jsx" --include="*.html" \
+              --exclude-dir=".git" . 2>/dev/null | grep -v "//.*$pattern" | wc -l)
+            if [ "$HITS" -gt 0 ]; then
+              echo "⚠️  Posible dato sensible encontrado ($pattern): $HITS ocurrencias"
+              grep -riEn "$pattern" --include="*.js" --include="*.jsx" --include="*.html" \
+                --exclude-dir=".git" . 2>/dev/null | grep -v "//.*$pattern"
+              FAILED=1
+            fi
+          done
+
+          [ "$FAILED" -eq 0 ] && echo "✅ Sin credenciales expuestas detectadas"
+          exit $FAILED
+
+      - name: Verificar número WhatsApp no hardcodeado
+        run: |
+          # El número debe venir de DianeryData.getConfig(), no estar en el código
+          HITS=$(grep -rn "wa\.me/[0-9]\{8,\}" --include="*.jsx" --include="*.js" . 2>/dev/null | wc -l)
+          if [ "$HITS" -gt 0 ]; then
+            echo "⚠️  Número WhatsApp hardcodeado detectado:"
+            grep -rn "wa\.me/[0-9]\{8,\}" --include="*.jsx" --include="*.js" . 2>/dev/null
+          else
+            echo "✅ WhatsApp configurable vía admin (OK)"
+          fi
+
+      - name: Verificar no hay eval() en el código
+        run: |
+          HITS=$(grep -rn "\beval\s*(" --include="*.js" --include="*.jsx" . \
+            --exclude-dir=".git" 2>/dev/null | grep -v "node_modules" | wc -l)
+          if [ "$HITS" -gt 0 ]; then
+            echo "❌ eval() detectado — riesgo de XSS:"
+            grep -rn "\beval\s*(" --include="*.js" --include="*.jsx" . --exclude-dir=".git"
+            exit 1
+          else
+            echo "✅ Sin eval() detectado"
+          fi

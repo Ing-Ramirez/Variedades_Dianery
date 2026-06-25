@@ -1,0 +1,74 @@
+name: CI — Producción
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  validar-produccion:
+    name: Validar antes de deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar validadores
+        run: npm install --save-dev @babel/core @babel/preset-react
+
+      - name: Validar sintaxis JSX (estricto)
+        run: |
+          cat > babel.config.json << 'EOF'
+          { "presets": ["@babel/preset-react"] }
+          EOF
+
+          FAILED=0
+          for f in app.jsx tweaks-panel.jsx components/*.jsx admin/*.jsx; do
+            echo -n "Verificando $f ... "
+            node -e "
+              const babel = require('@babel/core');
+              const fs = require('fs');
+              try {
+                babel.transformSync(fs.readFileSync('$f','utf8'), {filename:'$f'});
+                console.log('OK');
+              } catch(e) {
+                console.error('FALLO: ' + e.message);
+                process.exit(1);
+              }
+            " || FAILED=1
+          done
+          exit $FAILED
+
+      - name: Verificar archivos del sitio existen
+        run: |
+          REQUIRED="app.jsx config.js dianery-data.js footer.css styles.css tweaks-panel.jsx"
+          FAILED=0
+          for f in $REQUIRED; do
+            if [ ! -f "$f" ]; then
+              echo "❌ Falta archivo crítico: $f"
+              FAILED=1
+            else
+              echo "✅ $f"
+            fi
+          done
+          exit $FAILED
+
+      - name: Verificar HTML principal existe
+        run: |
+          if [ ! -f "Variedades Dianery.html" ]; then
+            echo "❌ Falta Variedades Dianery.html"
+            exit 1
+          fi
+          echo "✅ HTML principal encontrado"
+
+      - name: Verificar carpeta admin completa
+        run: |
+          REQUIRED="admin/Admin.html admin/AdminShell.jsx admin/Common.jsx admin/Products.jsx admin/Settings.jsx"
+          FAILED=0
+          for f in $REQUIRED; do
+            [ ! -f "$f" ] && echo "❌ Falta: $f" && FAILED=1 || echo "✅ $f"
+          done
+          exit $FAILED
