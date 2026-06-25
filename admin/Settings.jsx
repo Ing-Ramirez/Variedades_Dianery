@@ -75,7 +75,7 @@ function Settings() {
             <div className="card card-pad">
               <h3 className="card-title" style={{ marginBottom: 18 }}>Bloque de cierre de campaña</h3>
               <Field label="Mostrar en la tienda">
-                <label className="switch"><input type="checkbox" checked={f.closing.enabled} onChange={e => set("closing.enabled", e.target.checked)} /><span className="track" /><span>{f.closing.enabled ? "Activado" : "Desactivado"}</span></label>
+                <label className="switch"><input type="checkbox" checked={f.closing.enabled} onChange={e => set("closing.enabled", e.target.checked)} /><span className="track" /><span className={`switch-status ${f.closing.enabled ? "is-on" : "is-off"}`}>{f.closing.enabled ? "Activado" : "Desactivado"}</span></label>
               </Field>
               <Field label="Texto pequeño"><input className="input" value={f.closing.kicker} onChange={e => set("closing.kicker", e.target.value)} /></Field>
               <Field label="Frase principal"><input className="input" value={f.closing.title} onChange={e => set("closing.title", e.target.value)} /></Field>
@@ -123,7 +123,7 @@ function Settings() {
             <div className="card card-pad">
               <h3 className="card-title" style={{ marginBottom: 18 }}>Botón flotante de chat</h3>
               <Field label="Mostrar en la tienda">
-                <label className="switch"><input type="checkbox" checked={f.chat.enabled} onChange={e => set("chat.enabled", e.target.checked)} /><span className="track" /><span>{f.chat.enabled ? "Activado" : "Desactivado"}</span></label>
+                <label className="switch"><input type="checkbox" checked={f.chat.enabled} onChange={e => set("chat.enabled", e.target.checked)} /><span className="track" /><span className={`switch-status ${f.chat.enabled ? "is-on" : "is-off"}`}>{f.chat.enabled ? "Activado" : "Desactivado"}</span></label>
               </Field>
               <Field label="Texto del botón"><input className="input" value={f.chat.label} onChange={e => set("chat.label", e.target.value)} /></Field>
               <Field label="Enlace (WhatsApp u otro)" hint="Ej. https://wa.me/57300...">
