@@ -6,6 +6,7 @@
 (function () {
   const KEY = "dianery_store_v1";
   const CART_KEY = "dianery_cart_v1";
+  const API_URL = "/api.php";   // backend compartido (Hostinger PHP) — datos iguales en todos los dispositivos
 
   const MAX_IMAGES = 5;
   const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -94,6 +95,9 @@
     return null;
   }
 
+  let initialized = false;       // true tras la carga inicial; recién entonces se persiste al servidor
+  let userSavedLocally = false;  // el usuario editó en esta sesión → no pisar con datos del servidor en vuelo
+
   let state = load();
   if (!state) { state = deepClone(SEED); save(); }
   // Migración: estados guardados antes de existir categorías → derivarlas de los productos.
@@ -108,7 +112,34 @@
     try { localStorage.setItem(KEY, JSON.stringify(state)); }
     catch (e) { ok = false; } // p. ej. cuota de localStorage superada
     window.dispatchEvent(new CustomEvent("dianery:change"));
+    if (initialized) { userSavedLocally = true; saveToServer(); }  // persistir al servidor tras editar
     return ok;
+  }
+
+  // ---- Sincronización con el servidor (datos compartidos entre dispositivos) ----
+  function saveToServer() {
+    try {
+      fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(state)
+      }).catch(function () {}); // sin red: queda el cache local; se reintenta en el próximo guardado
+    } catch (e) {}
+  }
+  function syncFromServer() {
+    try {
+      fetch(API_URL + "?t=" + Date.now(), { cache: "no-store" })
+        .then(function (r) { return r.status === 200 ? r.json() : null; })
+        .then(function (data) {
+          if (userSavedLocally) return;   // el usuario ya editó → no sobrescribir sus cambios
+          if (data && Array.isArray(data.products) && data.config) {
+            state = data;
+            try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+            window.dispatchEvent(new CustomEvent("dianery:change"));
+          }
+        })
+        .catch(function () {}); // sin red/sin servidor: se queda con el cache local
+    } catch (e) {} // fetch no disponible → se queda con el cache local
   }
 
   // ---- Carrito (clave aparte, solo tienda) ----
@@ -324,4 +355,8 @@
   });
 
   window.DianeryData = DianeryData;
+
+  // Carga inicial desde el servidor (datos compartidos). A partir de aquí, cada save() persiste al servidor.
+  initialized = true;
+  syncFromServer();
 })();

@@ -1,0 +1,7 @@
+# Datos del servidor (los genera api.php en producción; nunca versionar ni desplegar)
+data.json
+data.json.tmp
+
+node_modules
+*.log
+.thumbnail

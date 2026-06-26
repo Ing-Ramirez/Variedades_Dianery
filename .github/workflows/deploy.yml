@@ -16,7 +16,7 @@ jobs:
         run: |
           mkdir -p deploy/admin deploy/components deploy/uploads
           cp "Variedades Dianery.html" deploy/index.html
-          cp app.jsx config.js dianery-data.js footer.css styles.css tweaks-panel.jsx favicon.svg deploy/
+          cp app.jsx config.js dianery-data.js footer.css styles.css tweaks-panel.jsx favicon.svg api.php deploy/
           cp -r admin/. deploy/admin/
           cp -r components/. deploy/components/
           [ -d uploads ] && cp -r uploads/. deploy/uploads/ || true

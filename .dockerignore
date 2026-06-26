@@ -3,3 +3,5 @@
 node_modules
 *.log
 .thumbnail
+data.json
+data.json.tmp
