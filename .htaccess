@@ -16,5 +16,6 @@
   </FilesMatch>
 </IfModule>
 
-# La raíz sirve la tienda.
-DirectoryIndex index.html
+# La raíz sirve index.php (router que inyecta SEO/OpenGraph dinámico por producto
+# y luego entrega la SPA). Si no hay PHP, cae a index.html.
+DirectoryIndex index.php index.html

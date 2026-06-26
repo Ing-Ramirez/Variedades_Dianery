@@ -18,7 +18,7 @@ jobs:
       - name: Preparar archivos para producción
         run: |
           mkdir -p deploy/admin deploy/components deploy/uploads
-          cp index.html app.jsx config.js dianery-data.js footer.css styles.css tweaks-panel.jsx favicon.svg api.php deploy/
+          cp index.html index.php og-image.php sitemap.php robots.txt app.jsx config.js dianery-data.js footer.css styles.css tweaks-panel.jsx favicon.svg api.php deploy/
           cp -r admin/. deploy/admin/
           cp -r components/. deploy/components/
           [ -d uploads ] && cp -r uploads/. deploy/uploads/ || true

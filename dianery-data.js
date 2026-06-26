@@ -324,8 +324,15 @@
     whatsappProductUrl(p) {
       const brand = state.config.brandName || "la tienda";
       const msg = `Hola, quiero consultar por este producto de ${brand}:\n\n` +
-        `${p.name} (SKU ${p.sku})\nPrecio: ${this.formatCOP(p.price)}\n\n¿Está disponible?`;
+        `${p.name} (SKU ${p.sku})\nPrecio: ${this.formatCOP(p.price)}\n` +
+        `${this.productShareUrl(p)}\n\n¿Está disponible?`;
       return `https://wa.me/${this.getWhatsappNumber()}?text=${encodeURIComponent(msg)}`;
+    },
+    // URL pública y compartible de un producto (?p=<sku> → el servidor genera el preview).
+    productShareUrl(p) {
+      const base = (typeof window !== "undefined" && window.location)
+        ? window.location.origin + window.location.pathname : "";
+      return base + "?p=" + encodeURIComponent(p.sku);
     },
     onCartChange(fn) {
       const h = () => fn(cart);

@@ -49,6 +49,37 @@ function App() {
     else window.shopToast && window.shopToast("No hay stock suficiente");
   };
 
+  /* ---- Rutas en la tienda: ?p=<sku> abre el producto (link compartible que el
+         servidor SÍ ve → permite preview por producto en WhatsApp/Facebook). ---- */
+  const openDetail = (p) => {
+    if (!p || !p.sku) return;
+    history.pushState({ p: p.sku }, "", window.location.pathname + "?p=" + encodeURIComponent(p.sku));
+    setDetail(p);
+  };
+  const closeDetail = () => {
+    setDetail(null);
+    if (new URLSearchParams(window.location.search).get("p"))
+      history.pushState({}, "", window.location.pathname);
+  };
+  React.useEffect(() => {
+    const applyUrl = () => {
+      const sku = new URLSearchParams(window.location.search).get("p");
+      if (sku) {
+        const p = D.getProducts().find(x => x.active && String(x.sku) === sku);
+        setDetail(p || null);
+      } else {
+        setDetail(null);
+      }
+    };
+    applyUrl();                                       // deep-link al cargar
+    window.addEventListener("popstate", applyUrl);    // atrás/adelante
+    window.addEventListener("dianery:change", applyUrl); // reintenta cuando llegan datos del servidor
+    return () => {
+      window.removeEventListener("popstate", applyUrl);
+      window.removeEventListener("dianery:change", applyUrl);
+    };
+  }, []);
+
   React.useEffect(() => {
     const r = document.documentElement.style;
     r.setProperty("--accent", t.accent);
@@ -73,12 +104,12 @@ function App() {
       <Header brand={brand} query={query} onQuery={setQuery}
         cartCount={D.cartCount()} onCartClick={() => setCartOpen(true)} />
       <Banner catalog={banner} />
-      <Catalog query={query} onOpenDetail={setDetail} onAddToCart={addToCart} />
+      <Catalog query={query} onOpenDetail={openDetail} onAddToCart={addToCart} />
       <ClosingCampaign data={closing} />
       <Footer data={footer} brand={brand} />
       <FloatingChat data={chat} />
 
-      <ProductDetail product={detail} onClose={() => setDetail(null)} onAddToCart={addToCart} />
+      <ProductDetail product={detail} onClose={closeDetail} onAddToCart={addToCart} />
       <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
       <ShopToast />
 

@@ -256,6 +256,17 @@ function ProductDetail({ product, onClose, onAddToCart }) {
   const out = product.stock <= 0;
   const main = images[active];
 
+  const shareProduct = async () => {
+    const url = D.productShareUrl(product);
+    const data = { title: product.name, text: `${product.name} — ${D.formatCOP(product.price)}`, url };
+    if (navigator.share) {
+      try { await navigator.share(data); } catch (e) { /* cancelado */ }
+    } else {
+      try { await navigator.clipboard.writeText(url); window.shopToast && window.shopToast("Link del producto copiado"); }
+      catch (e) { window.prompt("Copia el link del producto:", url); }
+    }
+  };
+
   return (
     <div className="modal-scrim" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
@@ -293,6 +304,9 @@ function ProductDetail({ product, onClose, onAddToCart }) {
               <a className="btn-wa" href={D.whatsappProductUrl(product)} target="_blank" rel="noopener">
                 <Ic.whatsapp style={{ width: 17, height: 17 }} />Consultar por WhatsApp
               </a>
+              <button className="btn-share" onClick={shareProduct} aria-label="Compartir producto">
+                <Ic.share style={{ width: 16, height: 16 }} />Compartir
+              </button>
             </div>
           </div>
         </div>
