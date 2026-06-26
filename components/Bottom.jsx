@@ -169,17 +169,24 @@ function Footer({ data, brand }) {
           )}
         </div>
 
-        {/* Barra legal */}
-        <div className="footer-legal">
-          <div className="legal-links">
-            {(legal.links || []).map((l, i) => <a key={i} href={l.href} onClick={e => footLink(e, l.href)}>{l.label}</a>)}
+        {/* Barra legal — solo si hay enlaces legales o el copyright está activado.
+            legal.showCopyright está ausente/false → el copyright queda oculto. */}
+        {(((legal.links || []).length > 0) || legal.showCopyright) && (
+          <div className="footer-legal">
+            {(legal.links || []).length > 0 && (
+              <div className="legal-links">
+                {(legal.links || []).map((l, i) => <a key={i} href={l.href} onClick={e => footLink(e, l.href)}>{l.label}</a>)}
+              </div>
+            )}
+            {legal.showCopyright && (
+              <div className="legal-meta">
+                © {legal.year} <strong>{legal.companyName}</strong>
+                {legal.taxId ? <span> · {legal.taxId}</span> : null}
+                <span> · Todos los derechos reservados.</span>
+              </div>
+            )}
           </div>
-          <div className="legal-meta">
-            © {legal.year} <strong>{legal.companyName}</strong>
-            {legal.taxId ? <span> · {legal.taxId}</span> : null}
-            <span> · Todos los derechos reservados.</span>
-          </div>
-        </div>
+        )}
       </div>
     </footer>
   );
