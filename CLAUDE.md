@@ -2,6 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> ## ⚠️ Protocolo obligatorio (leer primero)
+> Para CUALQUIER pedido que toque código/config/deploy, sigue el orden de [`.claude/protocolo.md`](.claude/protocolo.md): **(1)** carga `/variedades-dianery` + roles relevantes (o `/orquestador-equipo`) y revisa **`.claude/aprendizajes.md`** + memoria → **(2)** planea → **(3)** desarrolla → **(4)** verifica con evidencia → **(5)** registra aprendizajes en `.claude/aprendizajes.md` y lo durable en **memoria**. No empieces a codear sin enrutar y planear; no declares "funciona" sin evidencia; no repitas un error ya registrado. Un hook lo recuerda en cada prompt.
+
 ## Qué es esto
 
 Prototipo de "Variedades Dianery" (tienda de variedades en español) construido como app React **sin paso de compilación**: React 18 + ReactDOM + Babel Standalone se cargan desde CDN y el navegador compila los `.jsx` (`type="text/babel"`) en tiempo de carga. Son dos apps independientes que comparten marca:

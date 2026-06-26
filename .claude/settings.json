@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "echo \"PROTOCOLO (.claude/protocolo.md): antes de codear -> carga /variedades-dianery + rol(es) relevantes (o /orquestador-equipo); revisa .claude/aprendizajes.md y la memoria; planea; desarrolla; verifica con evidencia; y registra aprendizajes en .claude/aprendizajes.md + memoria.\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
