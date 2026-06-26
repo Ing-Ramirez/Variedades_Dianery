@@ -1,13 +1,16 @@
 name: Deploy a Hostinger
 
+# Despliegue por SSH (rsync, puerto 65002). SSH evita el bloqueo de fail2ban del
+# FTP (puerto 21). Requiere secrets: SSH_PRIVATE_KEY, SSH_HOST, SSH_USER,
+# SSH_PORT, SSH_TARGET. La clave pública debe estar en authorized_keys de Hostinger.
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Descargar código
         uses: actions/checkout@v4
@@ -20,46 +23,22 @@ jobs:
           cp -r components/. deploy/components/
           [ -d uploads ] && cp -r uploads/. deploy/uploads/ || true
           cp .htaccess deploy/ 2>/dev/null || true
-          # Cache-busting: reemplaza __VER__ por el SHA corto del commit en los HTML.
+          # Cache-busting: __VER__ → SHA corto del commit.
           VER="${GITHUB_SHA::8}"
           sed -i "s/__VER__/$VER/g" deploy/index.html deploy/admin/Admin.html
           echo "Versión de assets: $VER"
-          echo "=== Estructura de deploy ===" && find deploy -type f | sort
 
-      - name: Subir a Hostinger vía FTP (curl)
-        shell: bash
-        env:
-          FTP_HOST: ${{ secrets.FTP_HOST }}
-          FTP_USER: ${{ secrets.FTP_USER }}
-          FTP_PASS: ${{ secrets.FTP_PASS }}
+      - name: Configurar clave SSH
         run: |
-          # El FTP de Hostinger está enjaulado (chroot) DENTRO de public_html:
-          # se sube a la raíz "/", no a "public_html/".
-          HOST="${FTP_HOST#ftp://}"   # quita prefijo ftp:// si lo tuviera
-          HOST="${HOST%/}"            # quita barra final
-          # Chequeo rápido: si el FTP no responde (timeout/bloqueo), fallar YA (no colgarse ~50 min).
-          if ! curl -sS --disable-epsv --ftp-pasv --connect-timeout 12 --max-time 20 \
-               --user "$FTP_USER:$FTP_PASS" "ftp://$HOST/" -o /dev/null 2>/dev/null; then
-            echo "❌ FTP no accesible (timeout o bloqueo de Hostinger). El deploy automático no puede subir ahora."
-            echo "👉 Sube por el File Manager (ZIP) o pide a soporte de Hostinger desbloquear el FTP/fail2ban."
-            exit 1
-          fi
-          COMMON="--disable-epsv --ftp-pasv --connect-timeout 10 --retry 1 --retry-delay 2 --user $FTP_USER:$FTP_PASS"
-          fail=0
-          while IFS= read -r f; do
-            rel="${f#deploy/}"
-            name="$(basename "$rel")"
-            if [ "$name" = "Dashboard.jsx" ]; then
-              # Hostinger bloquea subir un archivo llamado Dashboard.jsx (regla de seguridad).
-              # Se sube con nombre temporal y se renombra en el servidor.
-              tmp="${rel%Dashboard.jsx}__dash_tmp.jsx"
-              curl -sS $COMMON --ftp-create-dirs -T "$f" "ftp://$HOST/$tmp" || fail=1
-              curl -sS $COMMON "ftp://$HOST/" -Q "DELE $rel" >/dev/null 2>&1 || true
-              curl -sS $COMMON "ftp://$HOST/" -Q "RNFR $tmp" -Q "RNTO $rel" || fail=1
-            else
-              curl -sS $COMMON --ftp-create-dirs -T "$f" "ftp://$HOST/$rel" || fail=1
-            fi
-            echo "→ $rel"
-          done < <(find deploy -type f | sort)
-          if [ "$fail" -ne 0 ]; then echo "❌ Hubo fallos en la subida"; exit 1; fi
-          echo "✅ Todos los archivos subidos"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Subir con rsync por SSH
+        run: |
+          # Sin --delete (seguro) y excluyendo data.json para NO tocar los datos del servidor.
+          rsync -rlptzv --exclude='data.json' --exclude='*.tmp' \
+            -e "ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" \
+            deploy/ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_TARGET }}"
+          echo "✅ Despliegue por SSH completado"
