@@ -45,7 +45,7 @@ function AdminShell() {
             })}
           </nav>
           <div className="top-right">
-            <a className="view-store" href="../Variedades Dianery.html" target="_blank" rel="noopener">
+            <a className="view-store" href="../" target="_blank" rel="noopener">
               <SHI.store />Ver tienda<SHI.external />
             </a>
             <div className="avatar">DM</div>
