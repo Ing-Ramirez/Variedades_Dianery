@@ -44,7 +44,7 @@ Cada mutación de catálogo dispara `dianery:change`; cada mutación de carrito 
 6. **ZIP para File Manager:** crear con **forward slashes** (PowerShell 5.1 `Compress-Archive` mete backslashes → Hostinger extrae mal). Usar `ZipFileExtensions::CreateEntryFromFile` con rutas `/`.
 7. El navegador del dueño puede **auto-traducir** la página (admin→administración, uploads→subidas en el File Manager/logs): es solo la etiqueta visual, los archivos reales están en inglés.
 
-Deploy automático: push a `main` → GitHub Actions `.github/workflows/deploy.yml` (curl). Secrets `FTP_HOST/USER/PASS`. CI: `ci-dev`, `ci-prod`, `security-scan`, `nightly`.
+Deploy automático: push a `main` → GitHub Actions `.github/workflows/deploy.yml` hace **rsync por SSH (puerto 65002)** — el FTP quedó bloqueado por fail2ban (puerto 21), SSH lo esquiva. Secrets `SSH_HOST=82.29.199.100`, `SSH_PORT=65002`, `SSH_USER=u103949240`, `SSH_TARGET=domains/variedadesdianery.com/public_html/`, `SSH_PRIVATE_KEY`. rsync sin `--delete` y `--exclude=data.json`. CI: `ci-dev`, `ci-prod`, `security-scan`, `nightly`.
 
 ## WhatsApp
 Número configurable en Admin → Contacto (`DianeryData.getConfig().contact.whatsapp`, NO `siteConfig`). `whatsappOrderUrl()` / `whatsappProductUrl(p)` construyen `wa.me/<numero>?text=...` con `encodeURIComponent`.
