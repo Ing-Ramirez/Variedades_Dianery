@@ -246,6 +246,39 @@
     },
     deleteProduct(id) { state.products = state.products.filter(p => p.id !== id); save(); },
 
+    // ---- Clientes: crear / editar / eliminar ----
+    validateCustomer(c) {
+      const e = [];
+      if (!c || !String(c.name || "").trim()) e.push("El nombre es obligatorio.");
+      if (!/^\S+@\S+\.\S+$/.test(String((c && c.email) || "").trim())) e.push("Escribe un email válido.");
+      return e;
+    },
+    // Devuelve { ok, errors, customer }. No persiste si la validación falla.
+    upsertCustomer(c) {
+      const errors = this.validateCustomer(c);
+      if (errors.length) return { ok: false, errors, customer: null };
+      const clean = {
+        ...c,
+        name: String(c.name).trim(),
+        email: String(c.email).trim(),
+        city: String(c.city || "").trim(),
+        orders: Number(c.orders) || 0,
+        spent: Number(c.spent) || 0,
+        since: c.since || new Date().toISOString().slice(0, 10)
+      };
+      if (clean.id) {
+        const i = state.customers.findIndex(x => x.id === clean.id);
+        if (i >= 0) state.customers[i] = { ...state.customers[i], ...clean };
+        else state.customers.push(clean);
+      } else {
+        clean.id = "c" + Date.now();
+        state.customers.push(clean);
+      }
+      save();
+      return { ok: true, errors: [], customer: clean };
+    },
+    deleteCustomer(id) { state.customers = state.customers.filter(c => c.id !== id); save(); },
+
     setOrderStatus(id, status) {
       const o = state.orders.find(x => x.id === id);
       if (o) { o.status = status; save(); }
