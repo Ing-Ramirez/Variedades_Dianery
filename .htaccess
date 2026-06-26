@@ -1,0 +1,20 @@
+# Variedades Dianery — control de caché en Hostinger (LiteSpeed)
+# La app se renderiza en el navegador y se actualiza seguido, así que
+# NO queremos que LiteSpeed sirva versiones viejas en caché.
+
+# Desactiva la caché pública de LiteSpeed para todo el sitio.
+<IfModule LiteSpeed>
+  CacheDisable public /
+</IfModule>
+
+# Evita que el navegador cachee los archivos de la app (HTML/JS/JSX/CSS).
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|js|jsx|css)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+</IfModule>
+
+# La raíz sirve la tienda.
+DirectoryIndex index.html

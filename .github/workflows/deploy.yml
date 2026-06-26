@@ -20,6 +20,11 @@ jobs:
           cp -r admin/. deploy/admin/
           cp -r components/. deploy/components/
           [ -d uploads ] && cp -r uploads/. deploy/uploads/ || true
+          cp .htaccess deploy/ 2>/dev/null || true
+          # Cache-busting: reemplaza __VER__ por el SHA corto del commit en los HTML.
+          VER="${GITHUB_SHA::8}"
+          sed -i "s/__VER__/$VER/g" deploy/index.html deploy/admin/Admin.html
+          echo "Versión de assets: $VER"
           echo "=== Estructura de deploy ===" && find deploy -type f | sort
 
       - name: Subir a Hostinger vía FTP (curl)
