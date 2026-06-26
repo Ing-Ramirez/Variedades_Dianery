@@ -37,7 +37,14 @@ jobs:
           # se sube a la raíz "/", no a "public_html/".
           HOST="${FTP_HOST#ftp://}"   # quita prefijo ftp:// si lo tuviera
           HOST="${HOST%/}"            # quita barra final
-          COMMON="--disable-epsv --ftp-pasv --connect-timeout 30 --retry 3 --retry-delay 3 --user $FTP_USER:$FTP_PASS"
+          # Chequeo rápido: si el FTP no responde (timeout/bloqueo), fallar YA (no colgarse ~50 min).
+          if ! curl -sS --disable-epsv --ftp-pasv --connect-timeout 12 --max-time 20 \
+               --user "$FTP_USER:$FTP_PASS" "ftp://$HOST/" -o /dev/null 2>/dev/null; then
+            echo "❌ FTP no accesible (timeout o bloqueo de Hostinger). El deploy automático no puede subir ahora."
+            echo "👉 Sube por el File Manager (ZIP) o pide a soporte de Hostinger desbloquear el FTP/fail2ban."
+            exit 1
+          fi
+          COMMON="--disable-epsv --ftp-pasv --connect-timeout 10 --retry 1 --retry-delay 2 --user $FTP_USER:$FTP_PASS"
           fail=0
           while IFS= read -r f; do
             rel="${f#deploy/}"
