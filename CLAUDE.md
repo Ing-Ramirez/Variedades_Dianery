@@ -60,3 +60,9 @@ Reutiliza los controles `Tweak*` (`TweakColor`, `TweakSlider`, `TweakRadio`, `Tw
 ## Convenciones
 - Todo el contenido visible es en **español**; moneda en COP (formateada con `formatCOP` / `toLocaleString("es-CO")`).
 - Estados de pedido (orden del flujo): Nuevo → Preparando → Enviado → Entregado / Cancelado.
+
+## Equipo de trabajo (`.claude/`)
+Este repo monta un **equipo de roles** (skills) para trabajar con más herramientas. Punto de entrada: [`.claude/equipo.md`](.claude/equipo.md); índice en [`.claude/skills/README.md`](.claude/skills/README.md). Invoca roles con `/<slug>`.
+- **Empieza siempre con `/variedades-dianery`** (skill de dominio: arquitectura, invariantes, trampas de despliegue) y cierra con `/audit-connections`.
+- Coordinación: `/orquestador-equipo`, `/planificador-proyectos`, `/director-tecnico-ia`, `/product-manager`. Más relevantes aquí: `/ingeniero-frontend`, `/ingeniero-backend`, `/especialista-ux`, `/ingeniero-devops`.
+- Conocimiento y procesos: `.claude/knowledge/`, `.claude/workflows/`. Para hacer crecer el equipo: `.claude/evolution/`.
