@@ -2,7 +2,10 @@
 
 > Este es el **modo de operar obligatorio** para cualquier pedido que toque código, configuración o despliegue en este repo. El orden NO es opcional: primero enrutar con el equipo, luego planear, luego desarrollar, y siempre cerrar registrando aprendizajes. Un hook lo recuerda en cada prompt; este archivo es la versión completa.
 
-## Las 5 fases (en orden, siempre)
+## Las fases (en orden, siempre)
+
+### 0. Comprender y afinar el pedido (antes de todo)
+Reformula internamente lo que pide el usuario en un **spec preciso**: objetivo · alcance · dónde · criterio de éxito. Usa el contexto/captura para inferir el QUÉ real. Detecta ambigüedad: si una decisión es del usuario y cambia el resultado → **una** pregunta concreta (`AskUserQuestion`); si hay default sensato → asume y **declara el supuesto**. No sobre-interpretes ("oculta esto" = oculta eso, no rediseñes) ni arregles el síntoma sin la causa. Detalle: skill **`/afinar-pedido`**. Recién con el pedido claro, sigue a la Fase 1.
 
 ### 1. Cargar contexto y enrutar (verificar + asignar)
 - Invoca **`/variedades-dianery`** (skill de dominio) antes de tocar nada: arquitectura, invariantes y trampas de despliegue.

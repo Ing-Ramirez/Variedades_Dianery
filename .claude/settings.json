@@ -6,7 +6,7 @@
           {
             "type": "command",
             "shell": "bash",
-            "command": "echo \"PROTOCOLO (.claude/protocolo.md): antes de codear -> carga /variedades-dianery + rol(es) relevantes (o /orquestador-equipo); revisa .claude/aprendizajes.md y la memoria; planea; desarrolla; verifica con evidencia; y registra aprendizajes en .claude/aprendizajes.md + memoria.\"",
+            "command": "echo \"PROTOCOLO (.claude/protocolo.md): antes de codear -> (0) afina el pedido /afinar-pedido (reformula + supuestos + criterio de exito); (1) carga /variedades-dianery + rol(es) o /orquestador-equipo y revisa .claude/aprendizajes.md + memoria; (2) planea; (3) desarrolla; (4) verifica con evidencia; (5) registra aprendizajes en .claude/aprendizajes.md + memoria.\"",
             "timeout": 5
           }
         ]

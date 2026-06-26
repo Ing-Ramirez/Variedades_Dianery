@@ -6,6 +6,7 @@ Registro maestro de los skills disponibles en este proyecto. Cada skill define u
 - **Invocar:** escribe `/<slug>` en el chat (ej. `/ingeniero-frontend`).
 - Este `README.md` es solo referencia (no es un `SKILL.md`, no se carga como skill).
 
+> **Paso 0:** [`afinar-pedido`](afinar-pedido/SKILL.md) — reformula el pedido del usuario en un spec preciso (supuestos + criterio de éxito) ANTES de planear. Úsalo primero, sobre todo si el pedido es corto/informal.
 > **Skill de dominio:** [`variedades-dianery`](variedades-dianery/SKILL.md) — arquitectura, invariantes y trampas de despliegue de ESTA tienda. Invócalo con `/variedades-dianery` antes de tocar código aquí.
 > **Herramienta:** [`audit-connections`](audit-connections/SKILL.md) — audita enlaces, URLs y la conexión admin↔tienda (el caso "se desactiva en admin pero sigue en la tienda").
 
