@@ -138,12 +138,21 @@
 .float-chat:hover .fc-label { max-width: 200px; opacity: 1; padding-right: 22px; }
 
 @media (max-width: 980px) {
+  .closing { padding: 72px 24px 76px; }
   .footer-top { grid-template-columns: 1fr 1fr; gap: 34px; }
   .footer-brand { grid-column: 1 / -1; }
 }
 @media (max-width: 620px) {
-  .footer-top { grid-template-columns: 1fr 1fr; }
-  .footer-legal { flex-direction: column; align-items: flex-start; }
+  .closing { padding: 54px 20px 58px; }
+  .footer-top { grid-template-columns: 1fr; gap: 28px; padding: 48px 0 40px; }
+  .footer-mid { padding: 28px 0; gap: 22px; }
+  .footer-legal { flex-direction: column; align-items: flex-start; padding: 22px 0 30px; }
   .legal-meta { text-align: left; }
-  .float-chat { right: 16px; bottom: 16px; }
+  .float-chat { right: 16px; bottom: 16px; height: 54px; }
+  .float-chat .fc-icon { width: 54px; height: 54px; }
+  .float-chat .fc-icon svg { width: 24px; height: 24px; }
+}
+@media (max-width: 420px) {
+  .closing h2 { font-size: 26px; }
+  .contact-list { gap: 14px 20px; }
 }

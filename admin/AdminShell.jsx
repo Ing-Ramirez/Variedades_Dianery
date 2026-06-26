@@ -46,7 +46,7 @@ function AdminShell() {
           </nav>
           <div className="top-right">
             <a className="view-store" href="../" target="_blank" rel="noopener">
-              <SHI.store />Ver tienda<SHI.external />
+              <SHI.store /><span className="vs-label">Ver tienda</span><SHI.external />
             </a>
             <div className="avatar">DM</div>
           </div>
