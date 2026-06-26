@@ -36,6 +36,7 @@ function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const cfg = window.siteConfig;
   const D = window.DianeryData;
+  const dc = D.getConfig() || {};   // config editable desde el Admin (fuente de verdad)
   const ft = FOOTER_THEMES[t.footerTheme] || FOOTER_THEMES.espresso;
 
   useStoreData();
@@ -57,17 +58,24 @@ function App() {
     r.setProperty("--radius", t.radius + "px");
   }, [t.accent, t.footerTheme, t.radius]);
 
-  const closing = { ...cfg.closingCampaign, enabled: t.showClosing && cfg.closingCampaign.enabled };
-  const chat = { ...cfg.floatingChat, enabled: t.showChat && cfg.floatingChat.enabled };
+  /* ---- Adaptadores: lo que se administra sale de DianeryData; siteConfig solo
+         aporta lo estático aún no administrable (nav, columnas/legal, imagen banner). ---- */
+  const dClosing = dc.closing || cfg.closingCampaign;
+  const dChat = dc.chat || cfg.floatingChat;
+  const brand = { ...cfg.brand, name: dc.brandName || cfg.brand.name, tagline: dc.tagline || cfg.brand.tagline };
+  const banner = { ...cfg.catalog, bannerKicker: dc.bannerKicker || cfg.catalog.bannerKicker, bannerTitle: dc.bannerTitle || cfg.catalog.bannerTitle };
+  const closing = { ...dClosing, enabled: t.showClosing && !!dClosing.enabled };
+  const footer = { ...cfg.footer, contact: dc.contact || cfg.footer.contact, socialLinks: dc.socialLinks || cfg.footer.socialLinks };
+  const chat = { ...cfg.floatingChat, ...dChat, enabled: t.showChat && !!dChat.enabled };
 
   return (
     <React.Fragment>
-      <Header brand={cfg.brand} query={query} onQuery={setQuery}
+      <Header brand={brand} query={query} onQuery={setQuery}
         cartCount={D.cartCount()} onCartClick={() => setCartOpen(true)} />
-      <Banner catalog={cfg.catalog} />
+      <Banner catalog={banner} />
       <Catalog query={query} onOpenDetail={setDetail} onAddToCart={addToCart} />
       <ClosingCampaign data={closing} />
-      <Footer data={cfg.footer} brand={cfg.brand} />
+      <Footer data={footer} brand={brand} />
       <FloatingChat data={chat} />
 
       <ProductDetail product={detail} onClose={() => setDetail(null)} onAddToCart={addToCart} />

@@ -273,5 +273,17 @@
     }
   };
 
+  // Sincronización entre pestañas: si el Admin guarda en otra pestaña, la Tienda
+  // recarga el estado desde localStorage y dispara el evento para re-renderizar.
+  window.addEventListener("storage", (e) => {
+    if (e.key === KEY) {
+      const s = load();
+      if (s) { state = s; window.dispatchEvent(new CustomEvent("dianery:change")); }
+    } else if (e.key === CART_KEY) {
+      cart = loadCart();
+      window.dispatchEvent(new CustomEvent("dianery:cart"));
+    }
+  });
+
   window.DianeryData = DianeryData;
 })();
