@@ -122,8 +122,10 @@ function Dropdown({ label, value, options, onChange, disabled }) {
 function ProductImage({ images, tag, className }) {
   const main = (images || [])[0];
   if (main) {
+    // La imagen se muestra en su proporción REAL: la caja se adapta a la imagen, no al revés.
     return (
-      <div className={"card-media " + (className || "")} style={{ backgroundImage: `url(${main})` }}>
+      <div className={"card-photo-wrap " + (className || "")}>
+        <img className="card-photo" src={main} alt="" loading="lazy" />
         {tag && <span className="card-tag">{tag}</span>}
       </div>
     );
@@ -261,7 +263,7 @@ function ProductDetail({ product, onClose, onAddToCart }) {
         <div className="modal-grid">
           <div className="modal-gallery">
             {main
-              ? <div className="modal-main" style={{ backgroundImage: `url(${main})` }} />
+              ? <img className="modal-photo" src={main} alt={product.name} />
               : <div className="modal-main ph"><span className="ph-label">sin imagen</span></div>}
             {images.length > 1 && (
               <div className="modal-thumbs">

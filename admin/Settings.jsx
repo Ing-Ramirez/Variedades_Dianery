@@ -31,7 +31,10 @@ function BannerImage({ value, onChange }) {
         </div>
       </div>
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onFile} />
-      <div className="hint">JPG, PNG o WEBP. Se reescala a máx. 1200px. Recomendada horizontal (panorámica). Recuerda Guardar cambios.</div>
+      <div className="hint">
+        <strong>Formatos:</strong> JPG, PNG o WEBP. <strong>Recomendado:</strong> horizontal/panorámica ~1200×450 px (relación 8:3), peso menor a 600 KB.
+        Se reescala automáticamente a máximo 1200 px por lado. <strong>Recuerda Guardar cambios.</strong>
+      </div>
     </div>
   );
 }

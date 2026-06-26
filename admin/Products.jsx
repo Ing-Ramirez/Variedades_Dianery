@@ -90,7 +90,10 @@ function ImageManager({ images, onChange }) {
       </div>
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden
         onChange={e => addFiles(e.target.files)} />
-      <div className="hint">Formatos: JPG, JPEG, PNG, WEBP. Se previsualizan antes de guardar.</div>
+      <div className="hint">
+        <strong>Formatos:</strong> JPG, PNG o WEBP. <strong>Recomendado:</strong> imagen cuadrada ~1000×1000 px (relación 1:1), máximo 1200 px por lado, peso menor a 500 KB.
+        La tienda muestra la imagen en su <strong>proporción real</strong> (no la recorta ni la deforma), así que usa el mismo formato en todos tus productos para un catálogo parejo.
+      </div>
     </div>
   );
 }

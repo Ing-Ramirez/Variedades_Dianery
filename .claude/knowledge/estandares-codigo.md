@@ -13,7 +13,7 @@ Convenciones que todo rol del equipo debe respetar en este repo.
 - CSS plano con custom properties; nada de frameworks. Tienda: `styles.css`+`footer.css`. Admin: `admin/admin.css`.
 - Responsive: breakpoints tienda 980/620/420; admin 920/600/400.
 - Iconos SVG inline reutilizables (`Ic`, `AdminIcons`) — no pegar SVG suelto.
-- Imágenes de producto: `object-fit/background-size: contain` (no recortar).
+- Imágenes de producto: se muestran en su **proporción real** con `<img>` (`width:100%; height:auto`); la caja se adapta a la imagen (sin recortar ni letterbox). El modal ("Ver producto") usa `.modal-photo` (`max-width:100%; max-height:70vh`) — solo la imagen, sin caja. El placeholder "sin imagen" sí usa caja de proporción fija.
 
 ## Calidad
 - Reutiliza patrones existentes; no introduzcas dependencias nuevas.
