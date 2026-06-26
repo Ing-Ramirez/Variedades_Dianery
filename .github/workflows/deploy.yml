@@ -38,7 +38,14 @@ jobs:
       - name: Subir con rsync por SSH
         run: |
           # Sin --delete (seguro) y excluyendo data.json para NO tocar los datos del servidor.
-          rsync -rlptzv --exclude='data.json' --exclude='*.tmp' \
-            -e "ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" \
-            deploy/ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_TARGET }}"
-          echo "✅ Despliegue por SSH completado"
+          # 3 reintentos para tolerar caídas transitorias de la conexión SSH.
+          SSHOPT="ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ServerAliveInterval=10"
+          DEST="${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_TARGET }}"
+          n=0
+          until [ "$n" -ge 3 ]; do
+            if rsync -rlptz --timeout=90 --exclude='data.json' --exclude='*.tmp' -e "$SSHOPT" deploy/ "$DEST"; then
+              echo "✅ Despliegue por SSH completado"; exit 0
+            fi
+            n=$((n+1)); echo "⚠️ Intento $n falló; reintentando en 15s…"; sleep 15
+          done
+          echo "❌ rsync falló tras 3 intentos"; exit 1
