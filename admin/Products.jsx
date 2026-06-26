@@ -2,7 +2,6 @@
 const { AdminIcons: PI } = window;
 
 const EMPTY_PRODUCT = { name: "", tag: "Hogar", desc: "", price: "", stock: "", sku: "", active: true, images: [] };
-const TAGS = ["Hogar", "Cocina", "Cuidado", "Papelería", "Accesorios", "Jardín", "Moda"];
 
 /* Lee un archivo de imagen, valida formato y lo reescala a un data URL liviano */
 function readImageFile(file) {
@@ -35,6 +34,7 @@ function readImageFile(file) {
     reader.readAsDataURL(file);
   });
 }
+window.readImageFile = readImageFile;   // compartido con Settings (uploader de banner)
 
 /* Gestor de imágenes: principal + galería, máx 5, reordenar / eliminar / cambiar principal */
 function ImageManager({ images, onChange }) {
@@ -97,7 +97,8 @@ function ImageManager({ images, onChange }) {
 
 function ProductDrawer({ product, onClose }) {
   const D = window.DianeryData;
-  const [f, setF] = React.useState(product ? { images: [], ...product } : { ...EMPTY_PRODUCT });
+  const cats = D.getCategories();   // lista gestionada de categorías
+  const [f, setF] = React.useState(product ? { images: [], ...product } : { ...EMPTY_PRODUCT, tag: cats[0] || EMPTY_PRODUCT.tag });
   const [errors, setErrors] = React.useState([]);
   const isNew = !product;
   const set = (k, v) => setF(s => ({ ...s, [k]: v }));
@@ -140,7 +141,7 @@ function ProductDrawer({ product, onClose }) {
             <div className="field">
               <label>Categoría *</label>
               <select className="select" value={f.tag} onChange={e => set("tag", e.target.value)}>
-                {TAGS.map(t => <option key={t}>{t}</option>)}
+                {[...new Set([...cats, f.tag].filter(Boolean))].map(t => <option key={t}>{t}</option>)}
               </select>
             </div>
             <div className="field">
@@ -184,12 +185,76 @@ function ProductDrawer({ product, onClose }) {
   );
 }
 
+/* Gestor de categorías: crear / eliminar (bloquea si hay productos usándola) */
+function CategoryDrawer({ onClose }) {
+  const D = window.DianeryData;
+  const data = window.useData();            // re-renderiza al crear/eliminar
+  const cats = data.getCategories();
+  const [name, setName] = React.useState("");
+
+  const add = () => {
+    const res = D.addCategory(name);
+    if (!res.ok) { window.adminToast(res.error); return; }
+    window.adminToast(`Categoría "${name.trim()}" creada`);
+    setName("");
+  };
+  const del = (c) => {
+    const res = D.deleteCategory(c);
+    if (!res.ok) { window.adminToast(res.error); return; }
+    window.adminToast(`Categoría "${c}" eliminada`);
+  };
+
+  return (
+    <React.Fragment>
+      <div className="drawer-scrim" onClick={onClose} />
+      <div className="drawer">
+        <div className="drawer-head">
+          <h3>Categorías</h3>
+          <button className="icon-btn" onClick={onClose}><PI.x /></button>
+        </div>
+        <div className="drawer-body">
+          <div className="field">
+            <label>Nueva categoría</label>
+            <div className="cat-add">
+              <input className="input" value={name} onChange={e => setName(e.target.value)}
+                placeholder="Ej. Tecnología"
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(); } }} />
+              <button className="btn btn-primary" onClick={add}><PI.plus />Agregar</button>
+            </div>
+          </div>
+          <div className="field">
+            <label>Categorías actuales ({cats.length})</label>
+            <ul className="cat-list">
+              {cats.map(c => {
+                const n = data.countProductsInCategory(c);
+                return (
+                  <li className="cat-item" key={c}>
+                    <span className="cat-name">{c}</span>
+                    <span className="cat-count">{n} producto{n === 1 ? "" : "s"}</span>
+                    <button className="icon-btn danger" title="Eliminar" onClick={() => del(c)}><PI.trash /></button>
+                  </li>
+                );
+              })}
+              {cats.length === 0 && <li className="empty">Aún no hay categorías.</li>}
+            </ul>
+            <div className="hint">No se puede eliminar una categoría con productos asignados; reasígnalos primero.</div>
+          </div>
+        </div>
+        <div className="drawer-foot">
+          <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>
+        </div>
+      </div>
+    </React.Fragment>
+  );
+}
+
 function Products() {
   const data = window.useData();
   const fmt = data.formatCOP;
   const [q, setQ] = React.useState("");
   const [filter, setFilter] = React.useState("Todos");
   const [drawer, setDrawer] = React.useState(null); // null | {} | product
+  const [catOpen, setCatOpen] = React.useState(false);
 
   const products = data.getProducts().filter(p => {
     const needle = q.toLowerCase();
@@ -210,9 +275,12 @@ function Products() {
       <div className="page-head">
         <div>
           <h1 className="page-title">Productos</h1>
-          <p className="page-sub">{data.getProducts().length} productos en el catálogo</p>
+          <p className="page-sub">{data.getProducts().length} productos · {data.getCategories().length} categorías</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setDrawer({})}><PI.plus />Nuevo producto</button>
+        <div className="page-head-actions">
+          <button className="btn btn-ghost" onClick={() => setCatOpen(true)}><PI.box />Categorías</button>
+          <button className="btn btn-primary" onClick={() => setDrawer({})}><PI.plus />Nuevo producto</button>
+        </div>
       </div>
 
       <div className="toolbar2">
@@ -264,6 +332,7 @@ function Products() {
       </div>
 
       {drawer !== null && <ProductDrawer product={drawer.id ? drawer : null} onClose={() => setDrawer(null)} />}
+      {catOpen && <CategoryDrawer onClose={() => setCatOpen(false)} />}
     </div>
   );
 }

@@ -16,6 +16,7 @@
       tagline: "Tienda de variedades",
       bannerKicker: "Colección 2026",
       bannerTitle: "TODAS LAS VARIEDADES",
+      bannerImage: "",
       closing: {
         enabled: true,
         kicker: "Siempre algo nuevo",
@@ -37,6 +38,8 @@
       ],
       chat: { enabled: true, provider: "whatsapp", label: "Habla con nosotros", href: "#" }
     },
+
+    categories: ["Accesorios", "Cocina", "Cuidado", "Hogar", "Jardín", "Moda", "Papelería"],
 
     products: [
       { id: "p1", name: "Vela de Soja Lavanda", tag: "Hogar", desc: "Aroma relajante de lavanda y vainilla, 40 horas de duración.", price: 38000, stock: 24, sku: "VEL-LAV-01", active: true },
@@ -93,6 +96,12 @@
 
   let state = load();
   if (!state) { state = deepClone(SEED); save(); }
+  // Migración: estados guardados antes de existir categorías → derivarlas de los productos.
+  else if (!Array.isArray(state.categories)) {
+    state.categories = [...new Set((state.products || []).map(p => p.tag).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, "es"));
+    save();
+  }
 
   function save() {
     let ok = true;
@@ -143,10 +152,39 @@
     ALLOWED_IMAGE_TYPES,
     validateProduct,
 
-    // Categorías presentes en el catálogo (opcionalmente solo activos)
+    // Tienda (onlyActive=true): categorías con ≥1 producto activo.
+    // Admin (sin arg): lista gestionada ∪ categorías presentes en productos (compatibilidad).
     getCategories(onlyActive) {
-      const src = onlyActive ? state.products.filter(p => p.active) : state.products;
-      return [...new Set(src.map(p => p.tag).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
+      if (onlyActive) {
+        const tags = state.products.filter(p => p.active).map(p => p.tag).filter(Boolean);
+        return [...new Set(tags)].sort((a, b) => a.localeCompare(b, "es"));
+      }
+      const managed = state.categories || [];
+      const fromProducts = state.products.map(p => p.tag).filter(Boolean);
+      return [...new Set([...managed, ...fromProducts])].sort((a, b) => a.localeCompare(b, "es"));
+    },
+
+    // Cuántos productos usan una categoría (para mostrar uso y bloquear borrado).
+    countProductsInCategory(name) {
+      return state.products.filter(p => p.tag === name).length;
+    },
+    // Crear categoría. Devuelve { ok, error }.
+    addCategory(name) {
+      const n = String(name || "").trim();
+      if (!n) return { ok: false, error: "Escribe un nombre para la categoría." };
+      if ((state.categories || []).some(c => c.toLowerCase() === n.toLowerCase()))
+        return { ok: false, error: "Esa categoría ya existe." };
+      state.categories = [...(state.categories || []), n];
+      save();
+      return { ok: true };
+    },
+    // Eliminar categoría. Se bloquea si hay productos que la usan. Devuelve { ok, error }.
+    deleteCategory(name) {
+      const inUse = this.countProductsInCategory(name);
+      if (inUse > 0) return { ok: false, error: `No puedes eliminar "${name}": ${inUse} producto(s) la usan. Reasígnalos primero.` };
+      state.categories = (state.categories || []).filter(c => c !== name);
+      save();
+      return { ok: true };
     },
 
     // Devuelve { ok, errors, product }. No persiste si la validación falla.

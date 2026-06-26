@@ -68,12 +68,13 @@ function Header({ brand, query, onQuery, cartCount, onCartClick }) {
 }
 
 function Banner({ catalog }) {
+  const img = catalog.bannerImage;
   return (
     <div className="wrap">
       <div className="banner">
-        <div className="ph">
-          <span className="ph-label">banner · foto lifestyle de productos</span>
-        </div>
+        {img
+          ? <div className="banner-img" style={{ backgroundImage: `url(${img})` }} />
+          : <div className="ph"><span className="ph-label">banner · foto lifestyle de productos</span></div>}
         <div className="banner-overlay" />
         <div className="banner-content">
           <span className="kicker">{catalog.bannerKicker}</span>

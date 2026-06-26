@@ -63,7 +63,7 @@ function App() {
   const dClosing = dc.closing || cfg.closingCampaign;
   const dChat = dc.chat || cfg.floatingChat;
   const brand = { ...cfg.brand, name: dc.brandName || cfg.brand.name, tagline: dc.tagline || cfg.brand.tagline };
-  const banner = { ...cfg.catalog, bannerKicker: dc.bannerKicker || cfg.catalog.bannerKicker, bannerTitle: dc.bannerTitle || cfg.catalog.bannerTitle };
+  const banner = { ...cfg.catalog, bannerKicker: dc.bannerKicker || cfg.catalog.bannerKicker, bannerTitle: dc.bannerTitle || cfg.catalog.bannerTitle, bannerImage: dc.bannerImage || "" };
   const closing = { ...dClosing, enabled: t.showClosing && !!dClosing.enabled };
   const footer = { ...cfg.footer, contact: dc.contact || cfg.footer.contact, socialLinks: dc.socialLinks || cfg.footer.socialLinks };
   const chat = { ...cfg.floatingChat, ...dChat, enabled: t.showChat && !!dChat.enabled };

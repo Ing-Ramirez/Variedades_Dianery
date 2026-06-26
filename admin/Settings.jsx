@@ -6,6 +6,36 @@ function Field({ label, children, hint }) {
   return <div className="field"><label>{label}</label>{children}{hint && <div className="hint">{hint}</div>}</div>;
 }
 
+/* Uploader de la imagen del banner (se reescala y guarda como data URL) */
+function BannerImage({ value, onChange }) {
+  const inputRef = React.useRef(null);
+  const onFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try { onChange(await window.readImageFile(file)); }
+    catch (msg) { window.adminToast(typeof msg === "string" ? msg : "Formato de imagen no permitido"); }
+    if (inputRef.current) inputRef.current.value = "";
+  };
+  return (
+    <div className="field">
+      <label>Imagen del banner</label>
+      <div className="banner-uploader">
+        {value
+          ? <div className="banner-preview" style={{ backgroundImage: `url(${value})` }} />
+          : <div className="banner-preview empty"><span>Sin imagen · la tienda muestra un fondo neutro</span></div>}
+        <div className="banner-uploader-actions">
+          <button type="button" className="btn btn-ghost" onClick={() => inputRef.current && inputRef.current.click()}>
+            <SI.plus />{value ? "Cambiar imagen" : "Subir imagen"}
+          </button>
+          {value && <button type="button" className="btn btn-ghost" onClick={() => onChange("")}>Quitar</button>}
+        </div>
+      </div>
+      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onFile} />
+      <div className="hint">JPG, PNG o WEBP. Se reescala a máx. 1200px. Recomendada horizontal (panorámica). Recuerda Guardar cambios.</div>
+    </div>
+  );
+}
+
 function Settings() {
   const D = window.DianeryData;
   const [f, setF] = React.useState(() => JSON.parse(JSON.stringify(D.getConfig())));
@@ -68,6 +98,7 @@ function Settings() {
               <h3 className="card-title" style={{ marginBottom: 18 }}>Banner principal</h3>
               <Field label="Texto pequeño (kicker)"><input className="input" value={f.bannerKicker} onChange={e => set("bannerKicker", e.target.value)} /></Field>
               <Field label="Título grande"><input className="input" value={f.bannerTitle} onChange={e => set("bannerTitle", e.target.value)} /></Field>
+              <BannerImage value={f.bannerImage || ""} onChange={v => set("bannerImage", v)} />
             </div>
           )}
 

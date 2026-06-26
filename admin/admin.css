@@ -288,6 +288,34 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 .img-add svg { width: 20px; height: 20px; }
 .img-add:hover { border-color: var(--brand); color: var(--brand); }
 
+/* ---------- Gestor de categorías ---------- */
+.page-head-actions { display: inline-flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.cat-add { display: flex; gap: 10px; align-items: stretch; }
+.cat-add .input { flex: 1; }
+.cat-add .btn { white-space: nowrap; }
+.cat-list { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.cat-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface);
+}
+.cat-name { font-weight: 600; font-size: 14px; color: var(--ink); }
+.cat-count { margin-left: auto; font-size: 12.5px; color: var(--ink-3); }
+.cat-item .icon-btn { flex: none; }
+.cat-list .empty { padding: 22px 0; }
+
+/* ---------- Uploader de banner ---------- */
+.banner-uploader { display: flex; flex-direction: column; gap: 10px; }
+.banner-preview {
+  width: 100%; aspect-ratio: 3 / 1; border-radius: 10px; overflow: hidden;
+  background-size: cover; background-position: center; border: 1px solid var(--line);
+  background-color: var(--line-2);
+}
+.banner-preview.empty {
+  display: flex; align-items: center; justify-content: center;
+  border-style: dashed; color: var(--ink-3); font-size: 13px;
+}
+.banner-uploader-actions { display: flex; gap: 10px; }
+
 @media (max-width: 920px) {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .dash-grid { grid-template-columns: 1fr; }
