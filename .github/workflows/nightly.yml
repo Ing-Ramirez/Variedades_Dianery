@@ -16,7 +16,7 @@ jobs:
       - name: Verificar integridad de archivos del sitio
         run: |
           echo "=== Revisión nocturna — $(date '+%Y-%m-%d') ==="
-          CRITICAL="app.jsx config.js dianery-data.js styles.css footer.css tweaks-panel.jsx Variedades Dianery.html"
+          CRITICAL="index.html app.jsx config.js dianery-data.js styles.css footer.css tweaks-panel.jsx api.php"
           ALL_OK=true
           for f in $CRITICAL; do
             if [ ! -f "$f" ]; then

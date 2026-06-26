@@ -58,8 +58,8 @@ jobs:
 
       - name: Verificar HTML principal existe
         run: |
-          if [ ! -f "Variedades Dianery.html" ]; then
-            echo "❌ Falta Variedades Dianery.html"
+          if [ ! -f "index.html" ]; then
+            echo "❌ Falta index.html"
             exit 1
           fi
           echo "✅ HTML principal encontrado"

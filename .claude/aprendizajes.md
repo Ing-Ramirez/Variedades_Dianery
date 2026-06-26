@@ -24,5 +24,10 @@ Registro de errores cometidos y su corrección, para **no repetirlos**. Formato 
 - **Cambios del admin no se reflejaban en la tienda (cierre, contacto).** → La tienda leía de `siteConfig` (estático) mientras el admin escribía en `DianeryData`. → **Regla:** todo dato editable se lee de `DianeryData.getConfig()` (vía adaptador en `app.jsx`); `siteConfig` solo para estático no administrable.
 - **Datos distintos en teléfono y PC.** → `localStorage` es por dispositivo; sin servidor no se comparte. → **Regla:** para datos compartidos entre clientes se necesita backend (`api.php` + `data.json`). El carrito sí es local por usuario.
 
+## 2026-06-26 — Paridad dev = producción
+
+- **El dev no reflejaba prod: `api.php` no corría en local.** → El dev usaba un estático sin PHP (nginx/`npx serve`), pero prod es Hostinger con PHP → el backend de sincronización se comportaba distinto. → **Regla:** el entorno de dev debe ser un **espejo del stack de prod**. Para un proyecto PHP-on-Hostinger, usar **Docker `php:8.2-apache`** (con `a2enmod headers rewrite` + `AllowOverride All` para `.htaccess`), montar el proyecto como volumen (live reload), y servir `index.html`. Verificado: `api.php` GET 204 → POST `{ok:true}` → GET 200 + `data.json` creado.
+- **Divergencia de nombre del archivo de entrada.** → Local era `Variedades Dianery.html` y prod `index.html` (renombrado al desplegar). → **Regla:** renombrar la fuente a `index.html` para que dev y prod usen la misma ruta/raíz; el deploy ya no renombra.
+
 ## 2026-06-25 — Entorno (Windows/PowerShell)
 - **`Remove-Item` bloqueado por el sandbox al incluir `/` o `'\\','/'`.** → El analizador del sandbox marca esos patrones. → **Regla:** evita literales de barra en el mismo comando que `Remove-Item`; usa `[IO.Path]::DirectorySeparatorChar`/`AltDirectorySeparatorChar` y separa la eliminación en su propio comando.

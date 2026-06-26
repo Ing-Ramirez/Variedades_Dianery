@@ -4,26 +4,26 @@ Prototipo de tienda de variedades con **panel de administración**, construido c
 
 Consta de dos partes que comparten una misma capa de datos:
 
-- **Tienda** (`Variedades Dianery.html`) — escaparate público: encabezado, banner, catálogo de productos, bloque de cierre de campaña, footer y chat flotante.
+- **Tienda** (`index.html`) — escaparate público: encabezado, banner, catálogo de productos, bloque de cierre de campaña, footer y chat flotante.
 - **Admin** (`admin/Admin.html`) — panel de gestión: resumen, productos, pedidos, clientes y configuración general.
 
 ## Cómo ejecutarlo
 
 No hay build, ni `npm install`, ni bundler: el navegador compila el JSX en tiempo de carga. Pero **debe servirse por HTTP** (con `file://` no funciona, porque los `.jsx` se cargan por red).
 
-Cualquier servidor estático sirve. Por ejemplo, con Node:
+El entorno de desarrollo **refleja producción** (Hostinger = PHP + Apache), así que `api.php` funciona igual en local. Se levanta con Docker:
 
 ```bash
-npx serve .
-# o cualquier server estático apuntando a la raíz del proyecto
+docker compose up -d     # http://localhost:8080
+docker compose down      # detener
 ```
 
 Luego abre en el navegador:
 
 | Página | Ruta |
 |--------|------|
-| Tienda | `/Variedades Dianery.html` (o `/`) |
-| Admin  | `/admin/Admin.html` |
+| Tienda | `http://localhost:8080/` |
+| Admin  | `http://localhost:8080/admin/Admin.html` |
 
 ## Capa de datos compartida
 
@@ -38,7 +38,7 @@ API principal: `getProducts`, `getOrders`, `getCustomers`, `getConfig`, `getMetr
 
 ```
 .
-├── Variedades Dianery.html   # Tienda (entrada)
+├── index.html                # Tienda (entrada)
 ├── dianery-data.js           # Capa de datos compartida (localStorage)
 ├── config.js                 # Config/textos de la tienda (window.siteConfig)
 ├── app.jsx                   # Ensambla la tienda + panel de Tweaks

@@ -8,7 +8,7 @@ description: Skill de dominio de "Variedades Dianery" — tienda de variedades e
 ## Identidad del proyecto
 
 Prototipo de tienda en español, **sin bundler**: React 18 + ReactDOM + Babel Standalone se cargan desde CDN y el navegador compila los `.jsx` (`type="text/babel"`) en tiempo de carga. **No hay `package.json`, npm, ni build.** Dos apps que comparten marca:
-- **Tienda** — `Variedades Dianery.html` (en producción se sirve como `index.html`).
+- **Tienda** — `index.html` (raíz; igual en dev y prod).
 - **Admin** — `admin/Admin.html`.
 
 Producción: **Hostinger** (PHP), dominio `variedadesdianery.com`. Repo: `github.com/Ing-Ramirez/Variedades_Dianery` (rama `main`).
@@ -23,7 +23,7 @@ No hay sistema de módulos. Cada archivo cuelga sus exports de `window` (`Object
 - **Trampa histórica:** si la tienda lee de `siteConfig` en vez de `DianeryData`, los cambios del admin NO se reflejan. Todo dato editable debe trazar a `DianeryData.getConfig()`.
 
 ### 3. Backend de datos compartidos — `api.php`
-`GET /api.php` devuelve `data.json`; `POST /api.php` lo sobrescribe (sin auth por decisión del dueño; escritura atómica, tope 25MB). `data.json` lo genera el servidor: **nunca se versiona ni se despliega** (`.gitignore`/`.dockerignore`; el deploy jamás lo toca). En `dianery-data.js`: al iniciar carga de localStorage y luego `syncFromServer()` (GET); cada `save()` posterior persiste con `saveToServer()` (POST). Flags `initialized` (no postear el seed inicial) y `userSavedLocally` (no pisar ediciones con un GET en vuelo). **El carrito NO se sincroniza** (local por usuario). Solo corre en Hostinger (PHP) — en Docker/`npx serve` cae al cache local.
+`GET /api.php` devuelve `data.json`; `POST /api.php` lo sobrescribe (sin auth por decisión del dueño; escritura atómica, tope 25MB). `data.json` lo genera el servidor: **nunca se versiona ni se despliega** (`.gitignore`/`.dockerignore`; el deploy jamás lo toca). En `dianery-data.js`: al iniciar carga de localStorage y luego `syncFromServer()` (GET); cada `save()` posterior persiste con `saveToServer()` (POST). Flags `initialized` (no postear el seed inicial) y `userSavedLocally` (no pisar ediciones con un GET en vuelo). **El carrito NO se sincroniza** (local por usuario). Corre con PHP: en prod (Hostinger) y en el **Docker `php:apache` de dev** (paridad). Con un estático sin PHP (`npx serve`) cae al cache local.
 
 ### 4. Eventos reactivos
 Cada mutación de catálogo dispara `dianery:change`; cada mutación de carrito dispara `dianery:cart`. La tienda re-renderiza ante ambos (hook `useStoreData` en `app.jsx`); el admin vía `useData()` (`Common.jsx`). Un `storage` listener en `dianery-data.js` recarga el estado entre pestañas.

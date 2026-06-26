@@ -47,7 +47,7 @@ jobs:
       - name: Verificar archivos referenciados en HTML
         run: |
           FAILED=0
-          for html in "Variedades Dianery.html" admin/Admin.html; do
+          for html in index.html admin/Admin.html; do
             echo "Revisando $html..."
             grep -oP '(?<=src=")[^"]+(?=")' "$html" | grep -v 'cdn\|http' | while read src; do
               if [ ! -f "$src" ]; then

@@ -1,11 +1,14 @@
-# Variedades Dianery — sitio estático (tienda + admin) servido con nginx.
-# Se sirve por HTTP porque los .jsx se cargan por red (file:// no funciona).
-FROM nginx:alpine
+# Dev = espejo de producción (Hostinger): PHP + Apache + .htaccess.
+# Hostinger corre LiteSpeed+PHP (compatible con Apache/.htaccess); usamos
+# php:apache para que api.php y el .htaccess funcionen IGUAL que en producción.
+FROM php:8.2-apache
 
-# Config: raíz → Tienda, /admin → panel
-COPY default.conf /etc/nginx/conf.d/default.conf
+# Módulos que usa el sitio: headers (cabeceras no-cache del .htaccess) y rewrite.
+RUN a2enmod headers rewrite
 
-# Archivos del sitio
-COPY . /usr/share/nginx/html
+# Permitir .htaccess en el web root, como en Hostinger.
+RUN sed -ri 's!AllowOverride None!AllowOverride All!g' /etc/apache2/apache2.conf
 
+# DocumentRoot por defecto = /var/www/html (ahí se monta el proyecto).
+# index.html es el índice por defecto de Apache → "/" sirve la tienda, igual que en prod.
 EXPOSE 80

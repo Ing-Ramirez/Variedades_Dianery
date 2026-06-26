@@ -1,8 +1,14 @@
+# Entorno de DESARROLLO que refleja producción (Hostinger): PHP + Apache.
+# Levantar:  docker compose up -d   →   http://localhost:8080
+# La tienda y el admin corren con PHP real, así api.php funciona igual que en prod.
 services:
   web:
     build: .
-    image: variedades-dianery
+    image: variedades-dianery-dev
     container_name: variedades-dianery
     ports:
       - "8080:80"
+    volumes:
+      # Monta el proyecto en vivo: editas un archivo y se ve al recargar (sin rebuild).
+      - .:/var/www/html
     restart: unless-stopped

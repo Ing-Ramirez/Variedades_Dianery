@@ -9,33 +9,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Prototipo de "Variedades Dianery" (tienda de variedades en español) construido como app React **sin paso de compilación**: React 18 + ReactDOM + Babel Standalone se cargan desde CDN y el navegador compila los `.jsx` (`type="text/babel"`) en tiempo de carga. Son dos apps independientes que comparten marca:
 
-- **Tienda** — `Variedades Dianery.html`: escaparate público (header, banner, catálogo, cierre de campaña, footer, chat flotante).
+- **Tienda** — `index.html`: escaparate público (header, banner, catálogo, cierre de campaña, footer, chat flotante).
 - **Admin** — `admin/Admin.html`: panel de gestión (resumen, productos, pedidos, clientes, configuración).
 
 No hay `package.json`, `npm`, bundler ni tests.
 
-## Cómo ejecutarlo
+## Cómo ejecutarlo — dev = producción
 
-**Debe servirse por HTTP** — con `file://` no funciona porque los `.jsx` se cargan por red:
+El entorno de desarrollo **debe reflejar Hostinger** (PHP + Apache + `.htaccess`) para que lo que funciona en dev funcione igual en prod. Por eso dev corre en **Docker con `php:apache`** (no un estático sin PHP — ahí `api.php` no funcionaría):
 
 ```bash
-npx serve .        # o cualquier servidor estático apuntando a la raíz
+docker compose up -d     # http://localhost:8080
+docker compose down      # detener
 ```
 
-- Tienda: `/Variedades Dianery.html` (o `/`)
-- Admin: `/admin/Admin.html`
+- Tienda: `http://localhost:8080/` (sirve `index.html`)
+- Admin: `http://localhost:8080/admin/Admin.html`
+- El volumen monta el proyecto en vivo: editas un archivo y se ve al recargar (sin rebuild).
+- `api.php` corre con PHP real → la sincronización funciona idéntica a producción.
+
+**Debe servirse por HTTP** (con `file://` no funciona: los `.jsx` se cargan por red).
 
 ## Arquitectura
 
 ### Globals, no imports
 React pre-bundler: no hay sistema de módulos. Cada archivo cuelga sus exports de `window` (`Object.assign(window, {...})` o `window.X = ...`) y los siguientes los destructuran de vuelta. **El orden de los `<script>` en cada HTML es la cadena de dependencias** y es load-bearing. Añadir un componente = escribirlo, exponerlo en `window`, y agregar su `<script type="text/babel">` en el orden correcto del HTML.
 
-Orden en `Variedades Dianery.html`: `config.js` → `tweaks-panel.jsx` → `components/Icons.jsx` → `components/Top.jsx` → `components/Bottom.jsx` → `app.jsx`.
+Orden en `index.html`: `config.js` → `tweaks-panel.jsx` → `components/Icons.jsx` → `components/Top.jsx` → `components/Bottom.jsx` → `app.jsx`.
 
 Orden en `admin/Admin.html`: `../dianery-data.js` → `AdminIcons.jsx` → `Common.jsx` → vistas (`Dashboard`/`Products`/`Orders`/`Customers`/`Settings`) → `AdminShell.jsx` (monta en `#root`).
 
 ### Backend de datos compartidos (Hostinger PHP)
-`api.php` (en la raíz) es el almacén central: `GET /api.php` devuelve `data.json`; `POST /api.php` lo sobrescribe (sin auth, decisión del dueño; escritura atómica con tope de 25MB). `data.json` lo genera el servidor — **no se versiona ni se despliega** (está en `.gitignore`/`.dockerignore`; el deploy nunca lo toca). `dianery-data.js` lo integra así: al iniciar carga de `localStorage` (instantáneo) y luego hace `syncFromServer()` (GET) para reemplazar con los datos del servidor; cada `save()` posterior persiste con `saveToServer()` (POST). Flags `initialized` (no postear durante el seed inicial) y `userSavedLocally` (no pisar ediciones con un GET en vuelo). El **carrito NO se sincroniza** (es local por usuario). Sin esto, cada dispositivo veía solo su propio `localStorage`. Nota: el backend solo corre en Hostinger (PHP); en Docker/`npx serve` no hay PHP y la app cae al cache local.
+`api.php` (en la raíz) es el almacén central: `GET /api.php` devuelve `data.json`; `POST /api.php` lo sobrescribe (sin auth, decisión del dueño; escritura atómica con tope de 25MB). `data.json` lo genera el servidor — **no se versiona ni se despliega** (está en `.gitignore`/`.dockerignore`; el deploy nunca lo toca). `dianery-data.js` lo integra así: al iniciar carga de `localStorage` (instantáneo) y luego hace `syncFromServer()` (GET) para reemplazar con los datos del servidor; cada `save()` posterior persiste con `saveToServer()` (POST). Flags `initialized` (no postear durante el seed inicial) y `userSavedLocally` (no pisar ediciones con un GET en vuelo). El **carrito NO se sincroniza** (es local por usuario). Sin esto, cada dispositivo veía solo su propio `localStorage`. El backend corre con PHP: en producción (Hostinger) y en el **Docker `php:apache` de dev** (paridad). Con un estático sin PHP (`npx serve`) `api.php` no responde y la app cae al cache local.
 
 ### Dos fuentes de datos
 - **`dianery-data.js` → `window.DianeryData`**: fuente de verdad de **productos, carrito y configuración**, persistida en `localStorage` (cache) + servidor vía `api.php` (`dianery_store_v1` para la tienda/admin, `dianery_cart_v1` para el carrito; seed la primera vez). Lo consumen **tanto el admin como el catálogo de la tienda**. API: `getConfig/getProducts/getOrders/getCustomers/getMetrics/getCategories`, `saveConfig`, `validateProduct`, `upsertProduct` (valida y devuelve `{ok, errors, product}`), `deleteProduct`, `setOrderStatus`, carrito (`getCart/getCartDetailed/cartCount/cartTotal/addToCart/setCartQty/removeFromCart/clearCart/onCartChange`), WhatsApp (`getWhatsappNumber/buildOrderMessage/whatsappOrderUrl/whatsappProductUrl`), `reset`, `formatCOP`, `onChange`. Cada mutación de catálogo dispara `dianery:change`; cada mutación de carrito dispara `dianery:cart`. La tienda se re-renderiza ante ambos (hook `useStoreData` en `app.jsx`).
