@@ -17,6 +17,12 @@ function Orders() {
     window.adminToast("Estado actualizado · #" + id);
   };
 
+  const removeOrder = (o) => {
+    if (!window.confirm(`¿Eliminar el pedido #${o.id} de ${o.customer}? Esta acción no se puede deshacer.`)) return;
+    data.deleteOrder(o.id);
+    window.adminToast("Pedido eliminado · #" + o.id);
+  };
+
   return (
     <div className="page">
       <div className="page-head">
@@ -40,7 +46,7 @@ function Orders() {
         <div className="tbl-wrap">
           <table className="tbl">
             <thead>
-              <tr><th>Pedido</th><th>Cliente</th><th>Ciudad</th><th>Fecha</th><th className="right">Items</th><th className="right">Total</th><th>Estado</th></tr>
+              <tr><th>Pedido</th><th>Cliente</th><th>Ciudad</th><th>Fecha</th><th className="right">Items</th><th className="right">Total</th><th>Estado</th><th className="right">Acción</th></tr>
             </thead>
             <tbody>
               {filtered.map(o => (
@@ -56,9 +62,12 @@ function Orders() {
                       {window.ORDER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </td>
+                  <td className="right">
+                    <button className="icon-btn danger" title="Eliminar pedido" aria-label={"Eliminar pedido " + o.id} onClick={() => removeOrder(o)}><OI.trash /></button>
+                  </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan="7"><div className="empty">Sin pedidos en este estado.</div></td></tr>}
+              {filtered.length === 0 && <tr><td colSpan="8"><div className="empty">Sin pedidos en este estado.</div></td></tr>}
             </tbody>
           </table>
         </div>

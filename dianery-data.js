@@ -430,6 +430,8 @@
       if (o) { o.status = status; save(); }
     },
 
+    deleteOrder(id) { state.orders = state.orders.filter(o => o.id !== id); save(); },
+
     reset() { state = deepClone(SEED); save(); },
 
     formatCOP(n) {
@@ -449,14 +451,23 @@
       ).join("\r\n");
       return head + "\r\n" + body;
     },
-    downloadCSV(filename, csv) {
-      // El BOM (﻿) hace que Excel reconozca UTF-8 (tildes, ñ).
-      const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    downloadBlob(filename, parts, mime) {
+      const blob = new Blob(parts, { type: mime });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url; a.download = filename;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 1500);
+    },
+    downloadCSV(filename, csv) {
+      // El BOM (﻿) hace que Excel reconozca UTF-8 (tildes, ñ).
+      this.downloadBlob(filename, ["﻿" + csv], "text/csv;charset=utf-8;");
+    },
+    // Respaldo COMPLETO de la base de datos (todo el store, en JSON restaurable).
+    exportFullBackup() {
+      const json = JSON.stringify(this.get(), null, 2);
+      const stamp = new Date().toISOString().slice(0, 10);
+      this.downloadBlob("variedades-dianery-respaldo-" + stamp + ".json", [json], "application/json;charset=utf-8;");
     },
     exportProductsCSV() {
       const cols = [

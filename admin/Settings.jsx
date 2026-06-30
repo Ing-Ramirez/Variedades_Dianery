@@ -169,9 +169,23 @@ function Settings() {
 
           {tab === "respaldo" && (
             <div className="card card-pad">
-              <h3 className="card-title" style={{ marginBottom: 6 }}>Descargar base de datos (CSV)</h3>
+              <h3 className="card-title" style={{ marginBottom: 6 }}>Base de datos completa</h3>
+              <p className="page-sub" style={{ margin: "0 0 14px" }}>
+                Descarga TODA la base de datos (productos, pedidos, clientes y configuración) en un solo archivo JSON. Es tu respaldo completo.
+              </p>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0 18px", borderBottom: "2px solid var(--line, #eee)", marginBottom: 18 }}>
+                <strong>Respaldo completo (JSON)</strong>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => { D.exportFullBackup(); window.adminToast("Respaldo completo descargado"); }}
+                >
+                  <SI.download />Descargar todo
+                </button>
+              </div>
+
+              <h3 className="card-title" style={{ marginBottom: 6 }}>Exportar por tabla (CSV)</h3>
               <p className="page-sub" style={{ margin: "0 0 18px" }}>
-                Exporta tus datos a un archivo CSV (se abre en Excel o Google Sheets). Útil como respaldo o para análisis.
+                Exporta una tabla a CSV (se abre en Excel o Google Sheets). Útil para análisis.
               </p>
               {[
                 { id: "prod", label: "Productos", count: D.getProducts().length, run: () => D.exportProductsCSV() },
