@@ -16,6 +16,8 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
 header('Pragma: no-cache');
 header('X-Content-Type-Options: nosniff');
 
+require_once __DIR__ . '/db.php';
+
 $file = __DIR__ . '/data.json';
 $method = $_SERVER['REQUEST_METHOD'];
 $maxPayloadBytes = 25 * 1024 * 1024;
@@ -262,7 +264,8 @@ function public_store($data) {
     ];
 }
 
-function load_store($file) {
+/* Lee data.json (almacenamiento de respaldo / semilla de migración). */
+function load_store_file($file) {
     if (!is_file($file)) return null;
     $raw = file_get_contents($file);
     if ($raw === false) return null;
@@ -270,8 +273,57 @@ function load_store($file) {
     return is_array($data) ? $data : null;
 }
 
+/* Lee el store de la fuente de verdad: la base de datos si está configurada,
+   o data.json si no. La PRIMERA vez que la DB está vacía, la siembra con
+   data.json (migración automática, sin perder datos). Si la DB está
+   configurada pero caída, $dberr = true (api.php responde 503, no sirve
+   datos viejos del archivo). */
+function read_store($file, &$dberr) {
+    $dberr = false;
+    if (db_is_configured()) {
+        $pdo = db_conn();
+        if (!$pdo) { $dberr = true; return null; }
+        db_init($pdo);
+        $data = db_load_store($pdo);
+        if ($data !== null) return $data;
+        // DB vacía: migra desde data.json si existe (una sola vez).
+        $seed = load_store_file($file);
+        if ($seed !== null) {
+            db_save_store($pdo, sanitize_store($seed));
+            return $seed;
+        }
+        return null; // DB ok pero sin datos
+    }
+    return load_store_file($file);
+}
+
+/* Guarda el store en la DB si está configurada; si no, en data.json (atómico).
+   Si la DB está configurada pero caída, NO escribe el archivo: devuelve error. */
+function write_store($file, $clean, &$error) {
+    if (db_is_configured()) {
+        $pdo = db_conn();
+        if (!$pdo) { $error = 'Base de datos no disponible.'; return false; }
+        db_init($pdo);
+        if (db_save_store($pdo, $clean)) return true;
+        $error = 'No se pudo guardar en la base de datos.';
+        return false;
+    }
+    $encoded = json_encode($clean, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if ($encoded === false) { $error = 'No se pudo codificar el JSON.'; return false; }
+    $tmp = $file . '.tmp';
+    if (file_put_contents($tmp, $encoded, LOCK_EX) === false || !rename($tmp, $file)) {
+        $error = 'No se pudo guardar en el servidor.';
+        return false;
+    }
+    return true;
+}
+
 if ($method === 'GET') {
-    $data = load_store($file);
+    $dberr = false;
+    $data = read_store($file, $dberr);
+    if ($dberr) {
+        respond_json(503, ['ok' => false, 'error' => 'Base de datos no disponible. Intenta de nuevo.']);
+    }
     if (!$data) {
         http_response_code(204);
         exit;
@@ -298,12 +350,9 @@ if ($method === 'POST') {
         respond_json(400, ['ok' => false, 'error' => 'JSON invalido o estructura no permitida.']);
     }
 
-    $encoded = json_encode($clean, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if ($encoded === false) respond_json(400, ['ok' => false, 'error' => 'No se pudo codificar el JSON.']);
-
-    $tmp = $file . '.tmp';
-    if (file_put_contents($tmp, $encoded, LOCK_EX) === false || !rename($tmp, $file)) {
-        respond_json(500, ['ok' => false, 'error' => 'No se pudo guardar en el servidor.']);
+    $error = '';
+    if (!write_store($file, $clean, $error)) {
+        respond_json(500, ['ok' => false, 'error' => $error ?: 'No se pudo guardar.']);
     }
 
     respond_json(200, ['ok' => true]);

@@ -1,6 +1,6 @@
-# Entorno de DESARROLLO que refleja producción (Hostinger): PHP + Apache.
+# Entorno de DESARROLLO que refleja producción (Hostinger): PHP + Apache + MySQL.
 # Levantar:  docker compose up -d   →   http://localhost:8080
-# La tienda y el admin corren con PHP real, así api.php funciona igual que en prod.
+# La tienda y el admin corren con PHP real + MySQL, igual que en producción.
 services:
   web:
     build: .
@@ -11,4 +11,35 @@ services:
     volumes:
       # Monta el proyecto en vivo: editas un archivo y se ve al recargar (sin rebuild).
       - .:/var/www/html
+    environment:
+      # api.php usa estas credenciales (db.php las lee de las variables de entorno).
+      # En producción NO se usan estas: allí van en .dianery-db.php (Hostinger).
+      DIANERY_DB_HOST: db
+      DIANERY_DB_NAME: dianery
+      DIANERY_DB_USER: dianery
+      DIANERY_DB_PASS: dianery
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
+
+  db:
+    image: mariadb:11
+    container_name: variedades-dianery-db
+    environment:
+      MARIADB_DATABASE: dianery
+      MARIADB_USER: dianery
+      MARIADB_PASSWORD: dianery
+      MARIADB_ROOT_PASSWORD: root
+    volumes:
+      # Persistencia de los datos del MySQL de dev entre reinicios.
+      - dianery-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  dianery-db-data:

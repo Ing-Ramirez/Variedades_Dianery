@@ -6,6 +6,9 @@ FROM php:8.2-apache
 # Módulos que usa el sitio: headers (cabeceras no-cache del .htaccess) y rewrite.
 RUN a2enmod headers rewrite
 
+# Extensión MySQL para api.php (Hostinger ya la trae; aquí la instalamos para paridad).
+RUN docker-php-ext-install pdo_mysql
+
 # Permitir .htaccess en el web root, como en Hostinger.
 RUN sed -ri 's!AllowOverride None!AllowOverride All!g' /etc/apache2/apache2.conf
 

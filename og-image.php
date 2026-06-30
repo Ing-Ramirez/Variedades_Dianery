@@ -6,6 +6,8 @@
    Solo se permiten JPEG, PNG y WEBP para evitar servir contenido activo.
    ============================================================ */
 
+require_once __DIR__ . '/db.php';
+
 header('X-Content-Type-Options: nosniff');
 
 $dataPath = __DIR__ . '/data.json';
@@ -17,20 +19,18 @@ $allowed = [
     'image/webp' => true,
 ];
 
-if (is_file($dataPath)) {
-    $data = json_decode((string)file_get_contents($dataPath), true);
-    if (is_array($data)) {
-        if ($sku !== '' && !empty($data['products'])) {
-            foreach ($data['products'] as $p) {
-                if (isset($p['sku']) && (string)$p['sku'] === $sku && !empty($p['active'])) {
-                    if (!empty($p['images'][0])) $dataUrl = $p['images'][0];
-                    break;
-                }
+$data = load_store_any($dataPath); // DB si está configurada; si no, data.json
+if (is_array($data)) {
+    if ($sku !== '' && !empty($data['products'])) {
+        foreach ($data['products'] as $p) {
+            if (isset($p['sku']) && (string)$p['sku'] === $sku && !empty($p['active'])) {
+                if (!empty($p['images'][0])) $dataUrl = $p['images'][0];
+                break;
             }
         }
-        if ($dataUrl === '' && !empty($data['config']['bannerImage'])) {
-            $dataUrl = $data['config']['bannerImage'];
-        }
+    }
+    if ($dataUrl === '' && !empty($data['config']['bannerImage'])) {
+        $dataUrl = $data['config']['bannerImage'];
     }
 }
 

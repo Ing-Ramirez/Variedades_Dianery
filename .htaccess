@@ -8,7 +8,7 @@
 </IfModule>
 
 # Bloquea datos, secretos y carpetas internas si quedan dentro de public_html.
-<FilesMatch "(^\.|data\.json(?:\.tmp)?$|\.dianery-admin-token\.php$|.*\.(?:bak|old|orig|save|swp)$)">
+<FilesMatch "(^\.|data\.json(?:\.tmp)?$|\.dianery-admin-token\.php$|\.dianery-db\.php$|.*\.(?:bak|old|orig|save|swp)$)">
   Require all denied
 </FilesMatch>
 RedirectMatch 404 ^/(?:\.claude|\.codex|\.agents)(?:/|$)

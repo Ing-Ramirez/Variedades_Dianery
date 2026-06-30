@@ -8,6 +8,8 @@
    La imagen OG la sirve og-image.php (decodifica el data URL del producto).
    ============================================================ */
 
+require_once __DIR__ . '/db.php';
+
 header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Content-Type: text/html; charset=utf-8');
 
@@ -31,14 +33,12 @@ function jsonld($data) {
 $sku = isset($_GET['p']) ? trim((string)$_GET['p']) : '';
 $config = null; $product = null;
 
-if (is_file($dataPath)) {
-    $data = json_decode((string)file_get_contents($dataPath), true);
-    if (is_array($data)) {
-        $config = $data['config'] ?? null;
-        if ($sku !== '' && !empty($data['products'])) {
-            foreach ($data['products'] as $p) {
-                if (isset($p['sku']) && (string)$p['sku'] === $sku && !empty($p['active'])) { $product = $p; break; }
-            }
+$data = load_store_any($dataPath); // DB si está configurada; si no, data.json
+if (is_array($data)) {
+    $config = $data['config'] ?? null;
+    if ($sku !== '' && !empty($data['products'])) {
+        foreach ($data['products'] as $p) {
+            if (isset($p['sku']) && (string)$p['sku'] === $sku && !empty($p['active'])) { $product = $p; break; }
         }
     }
 }

@@ -2,6 +2,7 @@
 data.json
 data.json.tmp
 .dianery-admin-token.php
+.dianery-db.php
 
 # Carpetas locales de asistentes/agentes. No forman parte del artefacto publico.
 .claude/
