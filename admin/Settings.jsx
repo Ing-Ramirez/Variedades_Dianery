@@ -67,7 +67,8 @@ function Settings() {
     { id: "cierre", label: "Cierre de campaña" },
     { id: "contacto", label: "Contacto" },
     { id: "redes", label: "Redes sociales" },
-    { id: "chat", label: "Chat flotante" }
+    { id: "chat", label: "Chat flotante" },
+    { id: "respaldo", label: "Respaldo" }
   ];
 
   return (
@@ -163,6 +164,37 @@ function Settings() {
               <Field label="Enlace (WhatsApp u otro)" hint="Ej. https://wa.me/57300...">
                 <input className="input" value={f.chat.href} onChange={e => set("chat.href", e.target.value)} />
               </Field>
+            </div>
+          )}
+
+          {tab === "respaldo" && (
+            <div className="card card-pad">
+              <h3 className="card-title" style={{ marginBottom: 6 }}>Descargar base de datos (CSV)</h3>
+              <p className="page-sub" style={{ margin: "0 0 18px" }}>
+                Exporta tus datos a un archivo CSV (se abre en Excel o Google Sheets). Útil como respaldo o para análisis.
+              </p>
+              {[
+                { id: "prod", label: "Productos", count: D.getProducts().length, run: () => D.exportProductsCSV() },
+                { id: "cli", label: "Clientes", count: D.getCustomers().length, run: () => D.exportCustomersCSV() },
+                { id: "ped", label: "Pedidos", count: D.getOrders().length, run: () => D.exportOrdersCSV() }
+              ].map(item => (
+                <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--line, #eee)" }}>
+                  <div>
+                    <strong>{item.label}</strong>
+                    <span className="page-sub" style={{ marginLeft: 8 }}>{item.count} registro{item.count === 1 ? "" : "s"}</span>
+                  </div>
+                  <button
+                    className="btn btn-ghost"
+                    disabled={item.count === 0}
+                    onClick={() => { item.run(); window.adminToast(item.label + ": CSV descargado"); }}
+                  >
+                    <SI.download />Descargar CSV
+                  </button>
+                </div>
+              ))}
+              <p className="hint" style={{ marginTop: 16 }}>
+                El CSV usa codificación UTF-8 con BOM, así Excel muestra correctamente tildes y ñ.
+              </p>
             </div>
           )}
 

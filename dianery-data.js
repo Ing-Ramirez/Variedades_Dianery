@@ -436,6 +436,70 @@
       return "$" + Number(n || 0).toLocaleString("es-CO");
     },
 
+    // ---- Exportar a CSV (respaldo desde el admin) ----
+    // columns: [{ label, key }] o [{ label, get: (row) => valor }]
+    csvFromRows(rows, columns) {
+      const esc = (v) => {
+        const s = (v === null || v === undefined) ? "" : String(v);
+        return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      };
+      const head = columns.map(c => esc(c.label)).join(",");
+      const body = (rows || []).map(r =>
+        columns.map(c => esc(c.get ? c.get(r) : r[c.key])).join(",")
+      ).join("\r\n");
+      return head + "\r\n" + body;
+    },
+    downloadCSV(filename, csv) {
+      // El BOM (﻿) hace que Excel reconozca UTF-8 (tildes, ñ).
+      const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    },
+    exportProductsCSV() {
+      const cols = [
+        { label: "ID", key: "id" },
+        { label: "Nombre", key: "name" },
+        { label: "Categoría", key: "tag" },
+        { label: "SKU", key: "sku" },
+        { label: "Precio", key: "price" },
+        { label: "Stock", key: "stock" },
+        { label: "Activo", get: p => p.active ? "Sí" : "No" },
+        { label: "Descripción", key: "desc" },
+        { label: "Nº imágenes", get: p => (p.images || []).length },
+      ];
+      const stamp = new Date().toISOString().slice(0, 10);
+      this.downloadCSV("productos-" + stamp + ".csv", this.csvFromRows(this.getProducts(), cols));
+    },
+    exportCustomersCSV() {
+      const cols = [
+        { label: "ID", key: "id" },
+        { label: "Nombre", key: "name" },
+        { label: "Email", key: "email" },
+        { label: "Ciudad", key: "city" },
+        { label: "Pedidos", key: "orders" },
+        { label: "Gastado", key: "spent" },
+        { label: "Cliente desde", key: "since" },
+      ];
+      const stamp = new Date().toISOString().slice(0, 10);
+      this.downloadCSV("clientes-" + stamp + ".csv", this.csvFromRows(this.getCustomers(), cols));
+    },
+    exportOrdersCSV() {
+      const cols = [
+        { label: "ID", key: "id" },
+        { label: "Cliente", key: "customer" },
+        { label: "Ciudad", key: "city" },
+        { label: "Fecha", key: "date" },
+        { label: "Items", key: "items" },
+        { label: "Total", key: "total" },
+        { label: "Estado", key: "status" },
+      ];
+      const stamp = new Date().toISOString().slice(0, 10);
+      this.downloadCSV("pedidos-" + stamp + ".csv", this.csvFromRows(this.getOrders(), cols));
+    },
+
     // ---- Carrito ----
     getCart() { return cart; },
     // Devuelve líneas con datos del producto resueltos (omite productos borrados/inactivos)
