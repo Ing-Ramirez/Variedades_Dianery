@@ -2,7 +2,7 @@ name: Deploy a Hostinger
 
 # Despliegue por SSH (rsync, puerto 65002). SSH evita el bloqueo de fail2ban del
 # FTP (puerto 21). Requiere secrets: SSH_PRIVATE_KEY, SSH_HOST, SSH_USER,
-# SSH_PORT, SSH_TARGET. La clave pública debe estar en authorized_keys de Hostinger.
+# SSH_PORT, SSH_TARGET, SSH_KNOWN_HOSTS. La clave publica debe estar en authorized_keys de Hostinger.
 on:
   push:
     branches: [main]
@@ -33,13 +33,17 @@ jobs:
           install -m 700 -d ~/.ssh
           printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+          if [ -z "${{ secrets.SSH_KNOWN_HOSTS }}" ]; then
+            echo "Falta configurar el secret SSH_KNOWN_HOSTS"; exit 1
+          fi
+          printf '%s\n' "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
 
       - name: Subir con rsync por SSH
         run: |
           # Sin --delete (seguro) y excluyendo data.json para NO tocar los datos del servidor.
           # 3 reintentos para tolerar caídas transitorias de la conexión SSH.
-          SSHOPT="ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ServerAliveInterval=10"
+          SSHOPT="ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts -o ConnectTimeout=20 -o ServerAliveInterval=10"
           DEST="${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_TARGET }}"
           n=0
           until [ "$n" -ge 3 ]; do

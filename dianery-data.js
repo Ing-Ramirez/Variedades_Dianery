@@ -6,10 +6,13 @@
 (function () {
   const KEY = "dianery_store_v1";
   const CART_KEY = "dianery_cart_v1";
+  const ADMIN_TOKEN_KEY = "dianery_admin_token_v1";
   const API_URL = "/api.php";   // backend compartido (Hostinger PHP) — datos iguales en todos los dispositivos
+  const ADMIN_MODE = window.DIANERY_ADMIN_MODE === true || /\/admin\//i.test(window.location.pathname);
 
   const MAX_IMAGES = 5;
   const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+  const ALLOWED_URL_PROTOCOLS = ["https:", "http:", "mailto:", "tel:"];
 
   const SEED = {
     config: {
@@ -87,6 +90,98 @@
 
   function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
 
+  function safeUrl(v, allowHash = true) {
+    const url = String(v || "").trim();
+    if (allowHash && (!url || url === "#")) return "#";
+    if (!/^[a-z][a-z0-9+.-]*:/i.test(url)) return "#";
+    try {
+      const parsed = new URL(url);
+      return ALLOWED_URL_PROTOCOLS.includes(parsed.protocol.toLowerCase()) ? url : "#";
+    } catch (e) {
+      return "#";
+    }
+  }
+
+  function safeImageDataUrl(v) {
+    const s = String(v || "").trim();
+    if (!s) return "";
+    return /^data:image\/(?:jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=\r\n]+$/i.test(s) ? s : "";
+  }
+
+  function cleanImages(images) {
+    if (!Array.isArray(images)) return [];
+    return images.slice(0, MAX_IMAGES).map(safeImageDataUrl).filter(Boolean);
+  }
+
+  function cleanSocialLinks(links) {
+    if (!Array.isArray(links)) return [];
+    return links.slice(0, 10).map(s => ({
+      ...s,
+      href: safeUrl(s && s.href)
+    }));
+  }
+
+  function mergeConfig(config) {
+    const base = deepClone(SEED.config);
+    const c = config && typeof config === "object" ? config : {};
+    const chat = { ...base.chat, ...((c.chat && typeof c.chat === "object") ? c.chat : {}) };
+    return {
+      ...base,
+      ...c,
+      bannerImage: safeImageDataUrl(c.bannerImage || ""),
+      closing: { ...base.closing, ...((c.closing && typeof c.closing === "object") ? c.closing : {}) },
+      contact: { ...base.contact, ...((c.contact && typeof c.contact === "object") ? c.contact : {}) },
+      chat: { ...chat, href: safeUrl(chat.href) },
+      socialLinks: cleanSocialLinks(Array.isArray(c.socialLinks) ? c.socialLinks : base.socialLinks)
+    };
+  }
+
+  function cleanProduct(p) {
+    return {
+      ...p,
+      images: cleanImages(p && p.images)
+    };
+  }
+
+  function normalizeStore(data) {
+    const base = deepClone(SEED);
+    if (!data || typeof data !== "object") return base;
+    return {
+      ...base,
+      ...data,
+      config: mergeConfig(data.config),
+      categories: Array.isArray(data.categories) ? data.categories : base.categories,
+      products: Array.isArray(data.products) ? data.products.map(cleanProduct) : base.products,
+      orders: Array.isArray(data.orders) ? data.orders : base.orders,
+      customers: Array.isArray(data.customers) ? data.customers : base.customers,
+      metrics: data.metrics && typeof data.metrics === "object" ? data.metrics : base.metrics
+    };
+  }
+
+  function getAdminToken() {
+    if (!ADMIN_MODE) return "";
+    try {
+      return sessionStorage.getItem(ADMIN_TOKEN_KEY) || localStorage.getItem(ADMIN_TOKEN_KEY) || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function clearStoredAdminToken(status) {
+    try {
+      sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+      localStorage.removeItem(ADMIN_TOKEN_KEY);
+    } catch (e) {}
+    window.dispatchEvent(new CustomEvent("dianery:auth", { detail: { status: status || 401 } }));
+  }
+
+  function authHeaders(extra) {
+    const headers = { ...(extra || {}) };
+    const token = getAdminToken();
+    if (token) headers["X-Dianery-Admin-Token"] = token;
+    return headers;
+  }
+
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
@@ -98,8 +193,9 @@
   let initialized = false;       // true tras la carga inicial; recién entonces se persiste al servidor
   let userSavedLocally = false;  // el usuario editó en esta sesión → no pisar con datos del servidor en vuelo
 
-  let state = load();
-  if (!state) { state = deepClone(SEED); save(); }
+  const storedState = load();
+  let state = normalizeStore(storedState);
+  if (!storedState) { save(); }
   // Migración: estados guardados antes de existir categorías → derivarlas de los productos.
   else if (!Array.isArray(state.categories)) {
     state.categories = [...new Set((state.products || []).map(p => p.tag).filter(Boolean))]
@@ -119,21 +215,40 @@
   // ---- Sincronización con el servidor (datos compartidos entre dispositivos) ----
   function saveToServer() {
     try {
+      if (ADMIN_MODE && !getAdminToken()) {
+        if (window.adminToast) window.adminToast("Ingresa el token de administrador para guardar.");
+        return;
+      }
       fetch(API_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(state)
-      }).catch(function () {}); // sin red: queda el cache local; se reintenta en el próximo guardado
+      })
+        .then(function (r) {
+          if (r.status === 401 || r.status === 503) {
+            clearStoredAdminToken(r.status);
+            if (window.adminToast) window.adminToast("Token de administrador invalido o no configurado.");
+          } else if (!r.ok && window.adminToast) {
+            window.adminToast("No se pudo guardar en el servidor.");
+          }
+        })
+        .catch(function () {}); // sin red: queda el cache local; se reintenta en el proximo guardado
     } catch (e) {}
   }
   function syncFromServer() {
     try {
-      fetch(API_URL + "?t=" + Date.now(), { cache: "no-store" })
-        .then(function (r) { return r.status === 200 ? r.json() : null; })
+      fetch(API_URL + "?t=" + Date.now(), { cache: "no-store", headers: authHeaders() })
+        .then(function (r) {
+          if (r.status === 401 || r.status === 503) {
+            clearStoredAdminToken(r.status);
+            return null;
+          }
+          return r.status === 200 ? r.json() : null;
+        })
         .then(function (data) {
           if (userSavedLocally) return;   // el usuario ya editó → no sobrescribir sus cambios
           if (data && Array.isArray(data.products) && data.config) {
-            state = data;
+            state = normalizeStore(data);
             try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
             window.dispatchEvent(new CustomEvent("dianery:change"));
           }
@@ -177,10 +292,41 @@
     getCustomers: () => state.customers,
     getMetrics: () => state.metrics,
 
-    saveConfig(patch) { state.config = { ...state.config, ...patch }; save(); },
+    isAdminMode: () => ADMIN_MODE,
+    hasAdminToken: () => !!getAdminToken(),
+    setAdminToken(token, remember) {
+      const clean = String(token || "").trim();
+      try {
+        sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+        localStorage.removeItem(ADMIN_TOKEN_KEY);
+        if (clean) {
+          (remember ? localStorage : sessionStorage).setItem(ADMIN_TOKEN_KEY, clean);
+        }
+      } catch (e) {}
+      window.dispatchEvent(new CustomEvent("dianery:auth", { detail: { status: clean ? 200 : 401 } }));
+      if (clean) syncFromServer();
+    },
+    clearAdminToken() {
+      clearStoredAdminToken(401);
+    },
+    verifyAdminToken(token) {
+      const clean = String(token || "").trim();
+      if (!clean) return Promise.resolve(false);
+      return fetch(API_URL + "?t=" + Date.now(), {
+        cache: "no-store",
+        headers: { "X-Dianery-Admin-Token": clean }
+      }).then(function (r) {
+        return r.status === 200;
+      }).catch(function () {
+        return false;
+      });
+    },
+
+    saveConfig(patch) { state.config = mergeConfig({ ...state.config, ...patch }); save(); },
 
     MAX_IMAGES,
     ALLOWED_IMAGE_TYPES,
+    safeUrl,
     validateProduct,
 
     // Tienda (onlyActive=true): categorías con ≥1 producto activo.
@@ -231,7 +377,7 @@
         price: Number(p.price),
         stock: Number(p.stock),
         active: !!p.active,
-        images: (p.images || []).slice(0, MAX_IMAGES)
+        images: cleanImages(p.images)
       };
       if (clean.id) {
         const i = state.products.findIndex(x => x.id === clean.id);
@@ -377,7 +523,7 @@
     onChange(fn) {
       const h = () => fn(state);
       window.addEventListener("dianery:change", h);
-      window.addEventListener("storage", (e) => { if (e.key === KEY) { state = load() || state; fn(state); } });
+      window.addEventListener("storage", (e) => { if (e.key === KEY) { state = normalizeStore(load() || state); fn(state); } });
       return h;
     }
   };
@@ -387,7 +533,7 @@
   window.addEventListener("storage", (e) => {
     if (e.key === KEY) {
       const s = load();
-      if (s) { state = s; window.dispatchEvent(new CustomEvent("dianery:change")); }
+      if (s) { state = normalizeStore(s); window.dispatchEvent(new CustomEvent("dianery:change")); }
     } else if (e.key === CART_KEY) {
       cart = loadCart();
       window.dispatchEvent(new CustomEvent("dianery:cart"));

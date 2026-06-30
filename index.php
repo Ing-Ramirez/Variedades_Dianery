@@ -20,6 +20,13 @@ if ($html === false) { http_response_code(500); echo 'index.html no encontrado';
 
 function esc($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function fmtCOP($n) { return '$' . number_format((float)$n, 0, ',', '.'); }
+function jsonld($data) {
+    return json_encode(
+        $data,
+        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES |
+        JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+    );
+}
 
 $sku = isset($_GET['p']) ? trim((string)$_GET['p']) : '';
 $config = null; $product = null;
@@ -47,7 +54,7 @@ if ($product) {
     $img   = $DOMAIN . '/og-image.php?p=' . rawurlencode($sku);
     $inStock = (!empty($product['stock']) && (float)$product['stock'] > 0);
 
-    $jsonld = json_encode([
+    $jsonld = jsonld([
         '@context' => 'https://schema.org', '@type' => 'Product',
         'name' => $product['name'], 'description' => $descRaw,
         'sku' => (string)$product['sku'], 'category' => $product['tag'] ?? '',
@@ -57,7 +64,7 @@ if ($product) {
             'priceCurrency' => 'COP', 'url' => $url,
             'availability' => $inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
         ],
-    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    ]);
 
     $seo = "<title>$title</title>\n"
          . "<meta name=\"description\" content=\"$desc\" />\n"
@@ -75,10 +82,10 @@ if ($product) {
     $html = preg_replace('/<!--SEO-START-->.*?<!--SEO-END-->/s', $seo, $html, 1);
 } else {
     // Home: agrega JSON-LD de la tienda antes de </head> (los meta por defecto ya están).
-    $jsonld = json_encode([
+    $jsonld = jsonld([
         '@context' => 'https://schema.org', '@type' => 'Store',
         'name' => $brand, 'url' => $DOMAIN . '/', 'image' => $DOMAIN . '/og-image.php',
-    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    ]);
     $html = str_replace('</head>', "<script type=\"application/ld+json\">$jsonld</script>\n</head>", $html);
 }
 

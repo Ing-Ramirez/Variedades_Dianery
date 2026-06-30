@@ -1,16 +1,21 @@
 <?php
 /* ============================================================
-   Variedades Dianery — Imagen para OpenGraph
-   Las imágenes de productos viven como data URL (base64) dentro de data.json.
-   Los crawlers (WhatsApp/Facebook) no pueden usar data URLs como og:image, así
-   que este script decodifica el base64 y lo sirve como imagen real.
-   - /og-image.php?p=<sku>  → imagen principal del producto
-   - /og-image.php          → imagen del banner (home) si existe
+   Variedades Dianery - Imagen para OpenGraph
+
+   Sirve imagenes almacenadas como data URL en data.json para crawlers.
+   Solo se permiten JPEG, PNG y WEBP para evitar servir contenido activo.
    ============================================================ */
+
+header('X-Content-Type-Options: nosniff');
 
 $dataPath = __DIR__ . '/data.json';
 $sku = isset($_GET['p']) ? trim((string)$_GET['p']) : '';
 $dataUrl = '';
+$allowed = [
+    'image/jpeg' => true,
+    'image/png' => true,
+    'image/webp' => true,
+];
 
 if (is_file($dataPath)) {
     $data = json_decode((string)file_get_contents($dataPath), true);
@@ -29,15 +34,28 @@ if (is_file($dataPath)) {
     }
 }
 
-if (preg_match('#^data:(image/[a-zA-Z0-9.+-]+);base64,(.+)$#s', $dataUrl, $m)) {
-    $bin = base64_decode($m[2]);
-    if ($bin !== false) {
-        header('Content-Type: ' . $m[1]);
-        header('Cache-Control: public, max-age=300');
-        echo $bin;
-        exit;
+if (preg_match('#^data:(image/(?:jpeg|jpg|png|webp));base64,([A-Za-z0-9+/=\r\n]+)$#', $dataUrl, $m)) {
+    $declared = strtolower($m[1]);
+    if ($declared === 'image/jpg') $declared = 'image/jpeg';
+
+    $bin = base64_decode($m[2], true);
+    if ($bin !== false && strlen($bin) <= 3 * 1024 * 1024 && isset($allowed[$declared])) {
+        $detected = $declared;
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo) {
+                $detected = finfo_buffer($finfo, $bin) ?: '';
+                finfo_close($finfo);
+            }
+        }
+
+        if ($detected === $declared) {
+            header('Content-Type: ' . $declared);
+            header('Cache-Control: public, max-age=300');
+            echo $bin;
+            exit;
+        }
     }
 }
 
-// Sin imagen → cae al favicon (fallback).
 header('Location: /favicon.svg');

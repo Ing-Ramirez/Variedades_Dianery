@@ -1,7 +1,13 @@
-# Datos del servidor (los genera api.php en producción; nunca versionar ni desplegar)
+# Datos del servidor generados en produccion; nunca versionar ni desplegar.
 data.json
 data.json.tmp
+.dianery-admin-token.php
 
-node_modules
+# Carpetas locales de asistentes/agentes. No forman parte del artefacto publico.
+.claude/
+.codex/
+.agents/
+
+node_modules/
 *.log
 .thumbnail

@@ -102,6 +102,10 @@ function footLink(e, href) {
   }
 }
 
+function safeHref(href) {
+  return DD.safeUrl ? DD.safeUrl(href) : "#";
+}
+
 function ContactItem({ icon, label, value }) {
   if (!value) return null;
   const Icon = I2[icon];
@@ -134,9 +138,10 @@ function Footer({ data, brand }) {
             <div className="footer-col" key={i}>
               <h4>{col.title}</h4>
               <ul>
-                {col.links.map((l, j) => (
-                  <li key={j}><a href={l.href} onClick={e => footLink(e, l.href)}>{l.label}</a></li>
-                ))}
+                {col.links.map((l, j) => {
+                  const href = safeHref(l.href);
+                  return <li key={j}><a href={href} onClick={e => footLink(e, href)}>{l.label}</a></li>;
+                })}
               </ul>
             </div>
           ))}
@@ -159,10 +164,11 @@ function Footer({ data, brand }) {
               <div className="social-row">
                 {socials.map((s, i) => {
                   const Icon = I2[s.icon];
-                  const real = s.href && s.href !== "#";
-                  return <a key={i} className="social-btn" href={s.href} aria-label={s.name}
+                  const href = safeHref(s.href);
+                  const real = href !== "#";
+                  return <a key={i} className="social-btn" href={href} aria-label={s.name}
                     target={real ? "_blank" : undefined} rel={real ? "noopener" : undefined}
-                    onClick={e => footLink(e, s.href)}><Icon /></a>;
+                    onClick={e => footLink(e, href)}><Icon /></a>;
                 })}
               </div>
             </div>
@@ -175,7 +181,10 @@ function Footer({ data, brand }) {
           <div className="footer-legal">
             {(legal.links || []).length > 0 && (
               <div className="legal-links">
-                {(legal.links || []).map((l, i) => <a key={i} href={l.href} onClick={e => footLink(e, l.href)}>{l.label}</a>)}
+                {(legal.links || []).map((l, i) => {
+                  const href = safeHref(l.href);
+                  return <a key={i} href={href} onClick={e => footLink(e, href)}>{l.label}</a>;
+                })}
               </div>
             )}
             {legal.showCopyright && (
@@ -195,7 +204,8 @@ function Footer({ data, brand }) {
 function FloatingChat({ data }) {
   if (!data || !data.enabled) return null;
   const Icon = data.provider === "whatsapp" ? I2.whatsapp : I2.chat;
-  const real = data.href && data.href !== "#";
+  const href = safeHref(data.href);
+  const real = href !== "#";
   const num = DD.getWhatsappNumber();
 
   const onClick = (e) => {
@@ -206,7 +216,7 @@ function FloatingChat({ data }) {
   };
 
   return (
-    <a className="float-chat" href={real ? data.href : "#"} aria-label={data.label}
+    <a className="float-chat" href={real ? href : "#"} aria-label={data.label}
       target={real ? "_blank" : undefined} rel={real ? "noopener" : undefined} onClick={onClick}>
       <span className="fc-icon"><Icon /></span>
       <span className="fc-label">{data.label}</span>

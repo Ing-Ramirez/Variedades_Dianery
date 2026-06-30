@@ -7,8 +7,17 @@
   CacheDisable public /
 </IfModule>
 
+# Bloquea datos, secretos y carpetas internas si quedan dentro de public_html.
+<FilesMatch "(^\.|data\.json(?:\.tmp)?$|\.dianery-admin-token\.php$|.*\.(?:bak|old|orig|save|swp)$)">
+  Require all denied
+</FilesMatch>
+RedirectMatch 404 ^/(?:\.claude|\.codex|\.agents)(?:/|$)
+
 # Evita que el navegador cachee los archivos de la app (HTML/JS/JSX/CSS).
 <IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set X-Frame-Options "SAMEORIGIN"
   <FilesMatch "\.(html|js|jsx|css)$">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
     Header set Pragma "no-cache"
