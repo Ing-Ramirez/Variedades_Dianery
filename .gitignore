@@ -11,3 +11,6 @@ data.json.tmp
 node_modules/
 *.log
 .thumbnail
+
+# Artefacto de build local (lo genera tools/build-local.sh; se regenera).
+dist/

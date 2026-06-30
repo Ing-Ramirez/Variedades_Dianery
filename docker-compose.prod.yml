@@ -1,0 +1,19 @@
+# Previsualización del artefacto de PRODUCCIÓN (carpeta dist/, ya precompilada).
+# Sirve EXACTAMENTE lo que se sube a Hostinger (sin Babel, solo .js), con la
+# MISMA imagen PHP+Apache que el dev → permite verificar "dev = prod".
+#
+#   bash tools/build-local.sh                          # genera dist/
+#   docker compose -f docker-compose.prod.yml up -d    # http://localhost:8081
+#   docker compose -f docker-compose.prod.yml down     # detener
+#
+# Corre en el puerto 8081 para no chocar con el dev normal (8080).
+services:
+  web-prod:
+    build: .
+    image: variedades-dianery-dev
+    container_name: variedades-dianery-prod
+    ports:
+      - "8081:80"
+    volumes:
+      - ./dist:/var/www/html
+    restart: unless-stopped

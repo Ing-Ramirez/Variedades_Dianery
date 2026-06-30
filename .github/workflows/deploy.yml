@@ -15,6 +15,11 @@ jobs:
       - name: Descargar código
         uses: actions/checkout@v4
 
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Preparar archivos para producción
         run: |
           mkdir -p deploy/admin deploy/components deploy/uploads
@@ -27,6 +32,28 @@ jobs:
           VER="${GITHUB_SHA::8}"
           sed -i "s/__VER__/$VER/g" deploy/index.html deploy/admin/Admin.html
           echo "Versión de assets: $VER"
+
+      - name: Precompilar JSX a JS (sin Babel en el navegador)
+        run: |
+          # Instala el MISMO Babel que el navegador usa en dev por CDN (7.29.0)
+          # para que dev (jsx+babel) y prod (js precompilado) sean idénticos.
+          npm i @babel/standalone@7.29.0 --no-save --no-audit --no-fund
+          # Transpila los .jsx de deploy/ a .js y elimina los .jsx de la salida.
+          node tools/precompile.js deploy
+          # Reescribe los HTML: quita el <script> de Babel y cambia
+          #   type="text/babel" src="X.jsx?v=..."  ->  src="X.js?v=..."
+          sed -i \
+            -e '/babel\/standalone/d' \
+            -e 's#type="text/babel" src="\([^"]*\)\.jsx\([^"]*\)"#src="\1.js\2"#g' \
+            deploy/index.html deploy/admin/Admin.html
+          # Verificación: no debe quedar ningún .jsx ni referencia a Babel.
+          if find deploy -name '*.jsx' | grep -q .; then
+            echo "❌ Quedaron .jsx sin transpilar"; find deploy -name '*.jsx'; exit 1
+          fi
+          if grep -rq 'text/babel' deploy/index.html deploy/admin/Admin.html; then
+            echo "❌ Quedó type=text/babel en el HTML"; exit 1
+          fi
+          echo "✅ Precompilación completada (sin Babel, solo .js)"
 
       - name: Configurar clave SSH
         run: |
