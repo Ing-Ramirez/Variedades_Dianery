@@ -51,7 +51,12 @@ function Settings() {
     return n;
   });
 
-  const save = () => { D.saveConfig(f); window.adminToast("Configuración guardada · visible en la tienda"); };
+  const save = () => {
+    D.saveConfig(f);
+    D.commit().then(function (ok) {
+      if (ok) window.adminToast("Configuración guardada · visible en la tienda");
+    });
+  };
 
   const setSocial = (i, k, v) => setF(s => {
     const n = JSON.parse(JSON.stringify(s));

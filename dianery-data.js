@@ -6,6 +6,7 @@
 (function () {
   const KEY = "dianery_store_v1";
   const CART_KEY = "dianery_cart_v1";
+  const DIRTY_KEY = "dianery_dirty_v1";   // hay cambios locales sin enviar al servidor
   const ADMIN_TOKEN_KEY = "dianery_admin_token_v1";
   const API_URL = "/api.php";   // backend compartido (Hostinger PHP) — datos iguales en todos los dispositivos
   const ADMIN_MODE = window.DIANERY_ADMIN_MODE === true || /\/admin\//i.test(window.location.pathname);
@@ -177,6 +178,17 @@
 
   let initialized = false;       // true tras la carga inicial; recién entonces se persiste al servidor
   let userSavedLocally = false;  // el usuario editó en esta sesión → no pisar con datos del servidor en vuelo
+  let dirty = false;             // hay cambios locales sin ENVIAR (modo "Guardar cambios" explícito)
+  try { dirty = localStorage.getItem(DIRTY_KEY) === "1"; } catch (e) {}
+
+  function setDirty(v) {
+    dirty = v;
+    try {
+      if (v) localStorage.setItem(DIRTY_KEY, "1");
+      else localStorage.removeItem(DIRTY_KEY);
+    } catch (e) {}
+    window.dispatchEvent(new CustomEvent("dianery:change")); // refresca el botón "Guardar cambios"
+  }
 
   const storedState = load();
   let state = normalizeStore(storedState);
@@ -193,45 +205,56 @@
     try { localStorage.setItem(KEY, JSON.stringify(state)); }
     catch (e) { ok = false; } // p. ej. cuota de localStorage superada
     window.dispatchEvent(new CustomEvent("dianery:change"));
-    if (initialized) { userSavedLocally = true; saveToServer(); }  // persistir al servidor tras editar
+    // Modo explícito: los cambios se ACUMULAN en local y se marcan como pendientes.
+    // No se envían al servidor hasta que el usuario pulsa "Guardar cambios" (commit()).
+    if (initialized) { userSavedLocally = true; setDirty(true); }
     return ok;
   }
 
   // ---- Sincronización con el servidor (datos compartidos entre dispositivos) ----
-  function saveToServer() {
+  // Envía el store completo al servidor. Devuelve Promise<boolean> (true = guardado).
+  function postStore() {
+    if (ADMIN_MODE && !getAdminToken()) {
+      if (window.adminToast) window.adminToast("Ingresa el token de administrador para guardar.");
+      return Promise.resolve(false);
+    }
     try {
-      if (ADMIN_MODE && !getAdminToken()) {
-        if (window.adminToast) window.adminToast("Ingresa el token de administrador para guardar.");
-        return;
-      }
-      fetch(API_URL, {
+      return fetch(API_URL, {
         method: "POST",
         headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(state)
       })
         .then(function (r) {
-          if (r.status === 401 || r.status === 503) {
-            clearStoredAdminToken(r.status);
-            if (window.adminToast) window.adminToast("Token de administrador invalido o no configurado.");
-          } else if (!r.ok && window.adminToast) {
-            window.adminToast("No se pudo guardar en el servidor.");
+          if (r.status === 401) {
+            clearStoredAdminToken(401);
+            if (window.adminToast) window.adminToast("Token de administrador inválido. Ingrésalo de nuevo.");
+            return false;
           }
+          if (r.status === 503) {
+            if (window.adminToast) window.adminToast("Base de datos no disponible. Intenta de nuevo.");
+            return false; // se conserva 'dirty' para reintentar
+          }
+          if (!r.ok) {
+            if (window.adminToast) window.adminToast("No se pudo guardar en el servidor.");
+            return false;
+          }
+          return true;
         })
-        .catch(function () {}); // sin red: queda el cache local; se reintenta en el proximo guardado
-    } catch (e) {}
+        .catch(function () {
+          if (window.adminToast) window.adminToast("Sin conexión: no se pudo guardar.");
+          return false;
+        });
+    } catch (e) { return Promise.resolve(false); }
   }
   function syncFromServer() {
     try {
       fetch(API_URL + "?t=" + Date.now(), { cache: "no-store", headers: authHeaders() })
         .then(function (r) {
-          if (r.status === 401 || r.status === 503) {
-            clearStoredAdminToken(r.status);
-            return null;
-          }
-          return r.status === 200 ? r.json() : null;
+          if (r.status === 401) { clearStoredAdminToken(401); return null; }
+          return r.status === 200 ? r.json() : null; // 503/otros: conserva el cache local
         })
         .then(function (data) {
-          if (userSavedLocally) return;   // el usuario ya editó → no sobrescribir sus cambios
+          if (userSavedLocally || dirty) return; // cambios locales sin guardar → no sobrescribir
           if (data && Array.isArray(data.products) && data.config) {
             state = normalizeStore(data);
             try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
@@ -276,6 +299,20 @@
     getOrders: () => state.orders,
     getCustomers: () => state.customers,
     getMetrics: () => state.metrics,
+
+    // ---- Guardado explícito ("Guardar cambios") ----
+    hasPendingChanges: () => dirty,
+    // Envía al servidor los cambios acumulados. Devuelve Promise<boolean>.
+    commit() {
+      if (!dirty) return Promise.resolve(true);
+      return postStore().then(function (ok) {
+        if (ok) {
+          setDirty(false);
+          if (window.adminToast) window.adminToast("Cambios guardados");
+        }
+        return ok;
+      });
+    },
 
     isAdminMode: () => ADMIN_MODE,
     hasAdminToken: () => !!getAdminToken(),
@@ -602,7 +639,15 @@
 
   window.DianeryData = DianeryData;
 
-  // Carga inicial desde el servidor (datos compartidos). A partir de aquí, cada save() persiste al servidor.
+  // Aviso al salir del admin si hay cambios sin guardar (modo explícito).
+  if (ADMIN_MODE) {
+    window.addEventListener("beforeunload", function (e) {
+      if (dirty) { e.preventDefault(); e.returnValue = ""; }
+    });
+  }
+
+  // Carga inicial desde el servidor (datos compartidos). A partir de aquí, cada
+  // edición marca "cambios sin guardar"; se envían al pulsar "Guardar cambios".
   initialized = true;
   syncFromServer();
 })();

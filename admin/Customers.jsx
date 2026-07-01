@@ -1,5 +1,5 @@
 /* Admin — Clientes (tabla + crear/editar/eliminar) */
-const { AdminIcons: CI } = window;
+const { AdminIcons: CI, SaveBar } = window;
 const EMPTY_CUSTOMER = { name: "", email: "", city: "", orders: 0, spent: 0, since: "" };
 
 function CustomerDrawer({ customer, onClose }) {
@@ -93,7 +93,10 @@ function Customers() {
           <h1 className="page-title">Clientes</h1>
           <p className="page-sub">{data.getCustomers().length} clientes registrados</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setDrawer({})}><CI.plus />Nuevo cliente</button>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <SaveBar />
+          <button className="btn btn-primary" onClick={() => setDrawer({})}><CI.plus />Nuevo cliente</button>
+        </div>
       </div>
 
       <div className="toolbar2">

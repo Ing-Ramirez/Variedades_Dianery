@@ -49,4 +49,26 @@ function useData() {
   return D;
 }
 
-Object.assign(window, { StatusBadge, StockCell, ORDER_STATUSES, useToast, Toast, useData });
+/* Botón "Guardar cambios" (modo explícito). Resaltado cuando hay cambios sin
+   enviar al servidor; neutro y deshabilitado cuando todo está guardado. */
+function SaveBar() {
+  useData(); // re-render cuando cambian datos / estado "sin guardar"
+  const pending = D.hasPendingChanges();
+  const [saving, setSaving] = React.useState(false);
+  const onSave = () => {
+    setSaving(true);
+    Promise.resolve(D.commit()).then(() => setSaving(false));
+  };
+  return (
+    <button
+      className={"btn " + (pending ? "btn-primary" : "btn-ghost")}
+      disabled={!pending || saving}
+      onClick={onSave}
+      title={pending ? "Enviar los cambios al servidor" : "No hay cambios pendientes"}
+    >
+      <AI.check />{saving ? "Guardando…" : pending ? "Guardar cambios" : "Todo guardado"}
+    </button>
+  );
+}
+
+Object.assign(window, { StatusBadge, StockCell, ORDER_STATUSES, useToast, Toast, useData, SaveBar });

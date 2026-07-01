@@ -1,5 +1,5 @@
 /* Admin — Productos (tabla + crear/editar/eliminar + stock + imágenes) */
-const { AdminIcons: PI } = window;
+const { AdminIcons: PI, SaveBar } = window;
 
 const EMPTY_PRODUCT = { name: "", tag: "Hogar", desc: "", price: "", stock: "", sku: "", active: true, images: [] };
 
@@ -281,6 +281,7 @@ function Products() {
           <p className="page-sub">{data.getProducts().length} productos · {data.getCategories().length} categorías</p>
         </div>
         <div className="page-head-actions">
+          <SaveBar />
           <button className="btn btn-ghost" onClick={() => setCatOpen(true)}><PI.box />Categorías</button>
           <button className="btn btn-primary" onClick={() => setDrawer({})}><PI.plus />Nuevo producto</button>
         </div>

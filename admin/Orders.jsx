@@ -1,5 +1,5 @@
 /* Admin — Pedidos (lista + cambio de estado en línea) */
-const { AdminIcons: OI } = window;
+const { AdminIcons: OI, SaveBar } = window;
 
 function Orders() {
   const data = window.useData();
@@ -30,6 +30,7 @@ function Orders() {
           <h1 className="page-title">Pedidos</h1>
           <p className="page-sub">{orders.length} pedidos · {counts["Nuevo"]} nuevos por atender</p>
         </div>
+        <SaveBar />
       </div>
 
       <div className="toolbar2">
