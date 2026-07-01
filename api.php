@@ -18,48 +18,11 @@ header('X-Content-Type-Options: nosniff');
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/img.php';
+require_once __DIR__ . '/admin-auth.php'; // respond_json, admin_secret, request_header, require_admin
 
 $file = __DIR__ . '/data.json';
 $method = $_SERVER['REQUEST_METHOD'];
 $maxPayloadBytes = 25 * 1024 * 1024;
-
-function respond_json($status, $payload) {
-    http_response_code($status);
-    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    exit;
-}
-
-function admin_secret() {
-    $env = getenv('DIANERY_ADMIN_TOKEN');
-    if (is_string($env) && trim($env) !== '') return trim($env);
-
-    $local = __DIR__ . '/.dianery-admin-token.php';
-    if (is_file($local)) {
-        $value = include $local;
-        if (is_string($value) && trim($value) !== '') return trim($value);
-    }
-    return '';
-}
-
-function request_header($name) {
-    $key = 'HTTP_' . strtoupper(str_replace('-', '_', $name));
-    return isset($_SERVER[$key]) ? trim((string)$_SERVER[$key]) : '';
-}
-
-function require_admin() {
-    $secret = admin_secret();
-    if ($secret === '') {
-        respond_json(503, [
-            'ok' => false,
-            'error' => 'Token de administracion no configurado en el servidor.'
-        ]);
-    }
-
-    $provided = request_header('X-Dianery-Admin-Token');
-    if ($provided === '' || !hash_equals($secret, $provided)) {
-        respond_json(401, ['ok' => false, 'error' => 'No autorizado.']);
-    }
-}
 
 function str_value($v, $max = 500) {
     $s = trim((string)($v ?? ''));

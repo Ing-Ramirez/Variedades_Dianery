@@ -327,6 +327,38 @@
       });
     },
 
+    // ---- Admin Inteligente AI (asistente de borradores de producto) ----
+    aiFetch(action, body) {
+      if (ADMIN_MODE && !getAdminToken()) {
+        return Promise.reject(new Error("Ingresa el token de administrador."));
+      }
+      const opts = { cache: "no-store", headers: authHeaders(body ? { "Content-Type": "application/json" } : {}) };
+      if (body) { opts.method = "POST"; opts.body = JSON.stringify(body); }
+      return fetch("/ai.php?action=" + encodeURIComponent(action), opts).then(function (r) {
+        if (r.status === 401) { clearStoredAdminToken(401); throw new Error("Token de administrador inválido."); }
+        return r.json().catch(function () { throw new Error("Respuesta ilegible del servidor."); }).then(function (j) {
+          if (!j || j.ok === false) throw new Error((j && j.error) || "Error del asistente de IA.");
+          return j;
+        });
+      });
+    },
+    aiModels() { return this.aiFetch("models"); },
+    aiAnalyze(payload) { return this.aiFetch("analyze", payload); },
+    aiRefine(payload) { return this.aiFetch("refine", payload); },
+    aiCreateDraft(payload) { return this.aiFetch("create-draft", payload); },
+    aiLogs() { return this.aiFetch("logs"); },
+
+    // Inserta en el estado local un producto que YA está guardado en el servidor
+    // (borrador creado por la IA). No marca "cambios sin guardar": así un commit
+    // posterior lo conserva y no hay nada pendiente de enviar.
+    addLocalProduct(p) {
+      if (!p || !p.id) return;
+      if (state.products.some(function (x) { return x.id === p.id; })) return;
+      state.products.push(p);
+      try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+      window.dispatchEvent(new CustomEvent("dianery:change"));
+    },
+
     // ---- Guardado explícito ("Guardar cambios") ----
     hasPendingChanges: () => dirty,
     // Envía al servidor los cambios acumulados. Devuelve Promise<boolean>.

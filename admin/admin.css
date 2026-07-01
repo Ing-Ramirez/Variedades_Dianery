@@ -429,3 +429,31 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   .seg { width: 100%; }
   .seg button { flex: 1; }
 }
+
+/* ===== Admin Inteligente AI ===== */
+.ai-input-grid { display: grid; grid-template-columns: 220px 1fr; gap: 20px; }
+.ai-label { display: block; font-size: 12px; font-weight: 600; color: var(--ink-2, #555); margin-bottom: 6px; }
+.ai-photo { width: 100%; aspect-ratio: 1; border-radius: 10px; background-size: cover; background-position: center; border: 1px solid var(--line, #e5e0d8); }
+.ai-photo.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: var(--bg-2, #faf8f4); color: var(--ink-3, #888); cursor: pointer; font-size: 13px; }
+.ai-photo.empty svg { width: 22px; height: 22px; }
+.ai-step-title { margin: 22px 0 12px; font-size: 16px; }
+.ai-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: start; }
+.ai-card { display: flex; flex-direction: column; gap: 10px; }
+.ai-card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ai-conf { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; }
+.ai-conf.ok { background: #e6f4ea; color: #1e7e34; }
+.ai-conf.mid { background: #fff4d6; color: #8a6d00; }
+.ai-conf.low { background: #fde7e7; color: #b02a37; }
+.ai-card-title { margin: 0; font-size: 16px; line-height: 1.3; }
+.ai-card-desc { margin: 0; font-size: 13px; color: var(--ink-2, #555); }
+.ai-block-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3, #888); margin-bottom: 4px; }
+.ai-list { margin: 0; padding-left: 18px; font-size: 13px; color: var(--ink-2, #555); }
+.ai-list li { margin: 2px 0; }
+.ai-seo-title { font-size: 13px; font-weight: 600; }
+.ai-seo-desc { font-size: 12px; color: var(--ink-3, #888); }
+.ai-meta { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--ink-3, #888); }
+.ai-warnings { font-size: 12px; color: #8a6d00; background: #fff8e1; border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; }
+.ai-use { margin-top: 4px; justify-content: center; }
+.ai-refine { margin-top: 6px; padding-top: 14px; border-top: 1px dashed var(--line, #e5e0d8); }
+.ai-done { border: 1px solid #cfe8d5; background: #f4fbf6; }
+@media (max-width: 900px) { .ai-grid { grid-template-columns: 1fr; } .ai-input-grid { grid-template-columns: 1fr; } .ai-photo { max-width: 240px; } }

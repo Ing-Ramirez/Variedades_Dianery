@@ -4,6 +4,7 @@ const { AdminIcons: SHI } = window;
 const NAV = [
   { id: "dashboard", label: "Resumen", icon: "dashboard" },
   { id: "productos", label: "Productos", icon: "box" },
+  { id: "ia", label: "Asistente IA", icon: "ai" },
   { id: "pedidos", label: "Pedidos", icon: "cart" },
   { id: "clientes", label: "Clientes", icon: "users" },
   { id: "config", label: "Configuracion", icon: "settings" }
@@ -128,6 +129,7 @@ function AdminShell() {
 
       {page === "dashboard" && <window.Dashboard go={go} />}
       {page === "productos" && <window.Products />}
+      {page === "ia" && <window.AiCreate go={go} />}
       {page === "pedidos" && <window.Orders />}
       {page === "clientes" && <window.Customers />}
       {page === "config" && <window.Settings />}

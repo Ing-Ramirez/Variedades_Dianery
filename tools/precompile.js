@@ -43,6 +43,7 @@ const files = [
   "admin/Orders.jsx",
   "admin/Customers.jsx",
   "admin/Settings.jsx",
+  "admin/AiCreate.jsx",
   "admin/AdminShell.jsx",
 ];
 
