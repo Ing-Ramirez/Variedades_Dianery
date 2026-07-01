@@ -65,8 +65,16 @@ for (const rel of files) {
     console.error("✗ Error transpilando " + rel + ": " + e.message);
     process.exit(1);
   }
+  // Envolver en IIFE: con <script type="text/babel"> cada archivo corría en su
+  // propio scope (Babel los evalúa por separado), así que patrones como
+  //   const { Ic } = window;   y   const Ic = {...}
+  // en archivos distintos NO chocaban. Como <script src> normales comparten el
+  // scope global, esos `const` de nivel superior colisionarían
+  // ("Identifier already declared") y romperían el render. El IIFE restaura el
+  // aislamiento; los exports siguen funcionando porque van por `window`.
+  const wrapped = "(function(){\n" + code + "\n})();\n";
   const dst = src.replace(/\.jsx$/, ".js");
-  fs.writeFileSync(dst, code);
+  fs.writeFileSync(dst, wrapped);
   fs.unlinkSync(src); // quita el .jsx de la salida: prod solo sirve .js
   ok++;
   console.log("✓ " + rel + " → " + rel.replace(/\.jsx$/, ".js"));

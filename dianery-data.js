@@ -57,26 +57,11 @@
       { id: "p9", name: "Tabla de Picar Olivo", tag: "Cocina", desc: "Madera de olivo curada, vetas únicas en cada pieza.", price: 61000, stock: 6, sku: "TAB-OLI-09", active: true }
     ],
 
-    orders: [
-      { id: "1042", customer: "Laura Restrepo", city: "Medellín", date: "2026-06-22", items: 3, total: 108000, status: "Nuevo" },
-      { id: "1041", customer: "Carlos Mejía", city: "Bogotá", date: "2026-06-22", items: 1, total: 61000, status: "Preparando" },
-      { id: "1040", customer: "Daniela Ortiz", city: "Cali", date: "2026-06-21", items: 2, total: 70000, status: "Preparando" },
-      { id: "1039", customer: "Andrés Gómez", city: "Barranquilla", date: "2026-06-21", items: 5, total: 184000, status: "Enviado" },
-      { id: "1038", customer: "Valentina Cruz", city: "Bucaramanga", date: "2026-06-20", items: 1, total: 38000, status: "Enviado" },
-      { id: "1037", customer: "Sebastián Rúa", city: "Medellín", date: "2026-06-20", items: 2, total: 75000, status: "Entregado" },
-      { id: "1036", customer: "María Páez", city: "Pereira", date: "2026-06-19", items: 4, total: 142000, status: "Entregado" },
-      { id: "1035", customer: "Juan David León", city: "Bogotá", date: "2026-06-19", items: 1, total: 22000, status: "Cancelado" },
-      { id: "1034", customer: "Camila Soto", city: "Manizales", date: "2026-06-18", items: 3, total: 96000, status: "Entregado" }
-    ],
+    // Los pedidos y clientes reales viven en la base de datos (servidor).
+    // El SEED arranca vacío para que NO reaparezcan registros de demo tras borrarlos.
+    orders: [],
 
-    customers: [
-      { id: "c1", name: "Laura Restrepo", email: "laura.r@correo.com", city: "Medellín", orders: 7, spent: 612000, since: "2025-02-14" },
-      { id: "c2", name: "Carlos Mejía", email: "cmejia@correo.com", city: "Bogotá", orders: 4, spent: 248000, since: "2025-05-03" },
-      { id: "c3", name: "Daniela Ortiz", email: "dani.ortiz@correo.com", city: "Cali", orders: 9, spent: 731000, since: "2024-11-20" },
-      { id: "c4", name: "Andrés Gómez", email: "agomez@correo.com", city: "Barranquilla", orders: 2, spent: 222000, since: "2026-01-08" },
-      { id: "c5", name: "Valentina Cruz", email: "valen.cruz@correo.com", city: "Bucaramanga", orders: 5, spent: 305000, since: "2025-08-17" },
-      { id: "c6", name: "María Páez", email: "mariapaez@correo.com", city: "Pereira", orders: 3, spent: 198000, since: "2025-12-02" }
-    ],
+    customers: [],
 
     metrics: {
       visitsMonth: 4820,
