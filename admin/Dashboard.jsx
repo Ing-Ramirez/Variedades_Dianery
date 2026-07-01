@@ -5,30 +5,59 @@ function Dashboard({ go }) {
   const data = window.useData();
   const orders = data.getOrders();
   const products = data.getProducts();
-  const metrics = data.getMetrics();
+  const visits = data.getVisits();
   const fmt = data.formatCOP;
 
-  const active = orders.filter(o => o.status !== "Cancelado");
-  const sales = active.reduce((s, o) => s + o.total, 0);
+  const MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+  const now = new Date();
+  const ymOf = (d) => String(d || "").slice(0, 7);                 // "YYYY-MM" desde "YYYY-MM-DD"
+  const keyOf = (dt) => dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0");
+  const curKey = keyOf(now);
+  const prevKey = keyOf(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+
+  const valid = orders.filter(o => o.status !== "Cancelado");
+  const inMonth = (k) => valid.filter(o => ymOf(o.date) === k);
+  const sumTotal = (list) => list.reduce((s, o) => s + (o.total || 0), 0);
+
+  const monthOrders = inMonth(curKey);
+  const prevOrders = inMonth(prevKey);
+  const salesMonth = sumTotal(monthOrders);
+  const salesPrev = sumTotal(prevOrders);
+  const ticketMonth = monthOrders.length ? Math.round(salesMonth / monthOrders.length) : 0;
+  const ticketPrev = prevOrders.length ? Math.round(salesPrev / prevOrders.length) : 0;
   const openOrders = orders.filter(o => o.status === "Nuevo" || o.status === "Preparando").length;
-  const avg = active.length ? Math.round(sales / active.length) : 0;
   const lowStock = products.filter(p => p.stock <= 5).sort((a, b) => a.stock - b.stock);
 
+  // % de cambio mes vs. mes anterior; null = sin base para comparar (oculta el delta).
+  const mkDelta = (cur, prev) => {
+    let d;
+    if (!prev) d = cur ? 100 : null;
+    else d = Math.round((cur - prev) / prev * 1000) / 10;
+    return d === null ? {} : { delta: Math.abs(d), up: d >= 0 };
+  };
+
   const kpis = [
-    { icon: "money", label: "Ventas del mes", value: fmt(sales), delta: 8.2, up: true },
-    { icon: "cart", label: "Pedidos por atender", value: openOrders, delta: 3.1, up: true },
-    { icon: "eye", label: "Visitas", value: metrics.visitsMonth.toLocaleString("es-CO"), delta: metrics.visitsDelta, up: true },
-    { icon: "money", label: "Ticket promedio", value: fmt(avg), delta: 1.4, up: false }
+    Object.assign({ icon: "money", label: "Ventas del mes", value: fmt(salesMonth) }, mkDelta(salesMonth, salesPrev)),
+    Object.assign({ icon: "cart", label: "Pedidos por atender", value: openOrders }, mkDelta(monthOrders.length, prevOrders.length)),
+    Object.assign({ icon: "eye", label: "Visitas", value: (visits.month || 0).toLocaleString("es-CO") }, mkDelta(visits.month, visits.prev)),
+    Object.assign({ icon: "money", label: "Ticket promedio", value: fmt(ticketMonth) }, mkDelta(ticketMonth, ticketPrev))
   ];
 
-  const maxV = Math.max(...metrics.salesByMonth.map(d => d.v));
+  // Ventas por mes: últimos 6 meses, calculadas de los pedidos reales.
+  const chart = [];
+  for (let i = 5; i >= 0; i--) {
+    const dt = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    chart.push({ m: MESES[dt.getMonth()], v: sumTotal(inMonth(keyOf(dt))) });
+  }
+  const maxV = Math.max(1, ...chart.map(d => d.v));
+  const subtitle = now.toLocaleDateString("es-CO", { month: "long", year: "numeric" });
 
   return (
     <div className="page">
       <div className="page-head">
         <div>
           <h1 className="page-title">Resumen</h1>
-          <p className="page-sub">Vista general de tu tienda · Junio 2026</p>
+          <p className="page-sub">Vista general de tu tienda · {subtitle}</p>
         </div>
         <button className="btn btn-primary" onClick={() => go("productos")}><DI.plus />Nuevo producto</button>
       </div>
@@ -36,12 +65,13 @@ function Dashboard({ go }) {
       <div className="kpi-grid">
         {kpis.map((k, i) => {
           const Icon = DI[k.icon];
+          const hasDelta = typeof k.delta === "number";
           const Arrow = k.up ? DI.up : DI.down;
           return (
             <div className="kpi" key={i}>
               <div className="kpi-label"><Icon />{k.label}</div>
               <div className="kpi-value">{k.value}</div>
-              <div className={"kpi-delta " + (k.up ? "up" : "down")}><Arrow />{k.delta}% vs. mes anterior</div>
+              {hasDelta && <div className={"kpi-delta " + (k.up ? "up" : "down")}><Arrow />{k.delta}% vs. mes anterior</div>}
             </div>
           );
         })}
@@ -50,12 +80,12 @@ function Dashboard({ go }) {
       <div className="dash-grid">
         <div className="card card-pad">
           <h3 className="card-title">Ventas por mes</h3>
-          <p className="page-sub" style={{ margin: "4px 0 0" }}>Millones de COP</p>
+          <p className="page-sub" style={{ margin: "4px 0 0" }}>Últimos 6 meses · COP</p>
           <div className="chart">
-            {metrics.salesByMonth.map((d, i) => (
+            {chart.map((d, i) => (
               <div className="chart-col" key={i}>
-                <div className={"chart-bar" + (i === metrics.salesByMonth.length - 1 ? " last" : "")}
-                  style={{ height: (d.v / maxV * 100) + "%" }} title={d.v + "M"} />
+                <div className={"chart-bar" + (i === chart.length - 1 ? " last" : "")}
+                  style={{ height: (d.v / maxV * 100) + "%" }} title={fmt(d.v)} />
                 <div className="chart-x">{d.m}</div>
               </div>
             ))}

@@ -331,7 +331,10 @@ if ($method === 'GET') {
 
     if (request_header('X-Dianery-Admin-Token') !== '') {
         require_admin();
-        respond_json(200, sanitize_store($data));
+        $resp = sanitize_store($data);
+        $pdo = db_conn();
+        if ($pdo) $resp['visits'] = db_visit_stats($pdo); // conteo real de visitas
+        respond_json(200, $resp);
     }
 
     respond_json(200, public_store($data));

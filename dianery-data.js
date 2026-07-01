@@ -299,6 +299,7 @@
     getOrders: () => state.orders,
     getCustomers: () => state.customers,
     getMetrics: () => state.metrics,
+    getVisits: () => state.visits || { month: 0, prev: 0, total: 0 }, // conteo real (servidor)
 
     // ---- Guardado explícito ("Guardar cambios") ----
     hasPendingChanges: () => dirty,
@@ -644,6 +645,17 @@
     window.addEventListener("beforeunload", function (e) {
       if (dirty) { e.preventDefault(); e.returnValue = ""; }
     });
+  }
+
+  // Contador de visitas: una vez por sesión del navegador y SOLO en la tienda
+  // (no en el admin). Sin cookies ni datos personales; el servidor cuenta por día.
+  if (!ADMIN_MODE) {
+    try {
+      if (!sessionStorage.getItem("dianery_hit_v1")) {
+        sessionStorage.setItem("dianery_hit_v1", "1");
+        fetch("/hit.php", { method: "POST", keepalive: true, cache: "no-store" }).catch(function () {});
+      }
+    } catch (e) {}
   }
 
   // Carga inicial desde el servidor (datos compartidos). A partir de aquí, cada

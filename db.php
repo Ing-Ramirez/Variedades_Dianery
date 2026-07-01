@@ -104,6 +104,37 @@ function db_load_store($pdo) {
     }
 }
 
+/* Crea la tabla de visitas si no existe. Idempotente. */
+function db_visits_init($pdo) {
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS visits (
+            day DATE NOT NULL PRIMARY KEY,
+            hits INT UNSIGNED NOT NULL DEFAULT 0
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+    );
+}
+
+/* Resumen de visitas para el dashboard: total del mes actual, del mes anterior
+   y global. Devuelve ceros si la tabla no existe o falla. */
+function db_visit_stats($pdo) {
+    $zero = ['month' => 0, 'prev' => 0, 'total' => 0];
+    try {
+        db_visits_init($pdo);
+        $sql = "SELECT
+            COALESCE(SUM(CASE WHEN day >= DATE_FORMAT(CURDATE(), '%Y-%m-01') THEN hits END), 0) AS m,
+            COALESCE(SUM(CASE WHEN day >= DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m-01')
+                              AND day <  DATE_FORMAT(CURDATE(), '%Y-%m-01') THEN hits END), 0) AS p,
+            COALESCE(SUM(hits), 0) AS t
+            FROM visits";
+        $st = $pdo->query($sql);
+        $r = $st ? $st->fetch() : null;
+        if (!$r) return $zero;
+        return ['month' => (int)$r['m'], 'prev' => (int)$r['p'], 'total' => (int)$r['t']];
+    } catch (Throwable $e) {
+        return $zero;
+    }
+}
+
 /* Lectura conveniente para index.php / og-image.php / sitemap.php:
    devuelve el store desde la DB si está configurada y tiene datos; si no,
    desde data.json. Solo lectura (no crea tabla ni siembra). */
