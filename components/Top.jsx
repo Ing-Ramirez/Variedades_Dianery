@@ -3,17 +3,20 @@ const { Ic } = window;
 const D = window.DianeryData;
 
 function scrollTop() { window.scrollTo({ top: 0, behavior: "smooth" }); }
-function scrollToCatalog() {
-  const el = document.getElementById("catalogo");
+function scrollToSel(sel) {
+  const el = document.querySelector(sel);
   if (el) el.scrollIntoView({ behavior: "smooth" });
   else scrollTop();
 }
+function scrollToCatalog() { scrollToSel("#catalogo"); }
 
-/* Comportamiento de navegación: sin enlaces muertos */
+/* Comportamiento de navegación: cada ítem lleva a una sección real (sin enlaces muertos). */
 function navAction(e, item) {
   e.preventDefault();
   if (item.label === "Inicio") scrollTop();
   else if (item.label === "Productos") scrollToCatalog();
+  else if (item.label === "Nuestra historia") scrollToSel(".closing, .site-footer");
+  else if (item.label === "Contacto") scrollToSel(".contact-block, .site-footer");
   else window.shopToast && window.shopToast("Próximamente");
 }
 
