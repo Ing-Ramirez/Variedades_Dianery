@@ -13,5 +13,8 @@ node_modules/
 *.log
 .thumbnail
 
+# Imágenes subidas por el admin (runtime): viven en /uploads del servidor, no en git.
+/uploads/*
+
 # Artefacto de build local (lo genera tools/build-local.sh; se regenera).
 dist/

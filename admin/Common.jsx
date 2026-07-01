@@ -16,7 +16,8 @@ function StatusBadge({ status }) {
 }
 
 function StockCell({ stock }) {
-  const low = stock <= 5;
+  const t = (D.getConfig() || {}).lowStockThreshold;
+  const low = stock <= (t != null ? t : 5);
   return <span className={low ? "stock-low" : "stock-ok"}>{stock} {low && stock > 0 ? "· bajo" : stock === 0 ? "· agotado" : "uds"}</span>;
 }
 

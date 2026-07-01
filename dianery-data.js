@@ -22,6 +22,7 @@
       bannerKicker: "Colección 2026",
       bannerTitle: "TODAS LAS VARIEDADES",
       bannerImage: "",
+      lowStockThreshold: 5,
       closing: {
         enabled: true,
         kicker: "Siempre algo nuevo",
@@ -88,9 +89,12 @@
     }
   }
 
+  // Acepta una imagen como archivo subido ("uploads/xxx.jpg") o, por
+  // compatibilidad, como data URL base64 (productos antiguos).
   function safeImageDataUrl(v) {
     const s = String(v || "").trim();
     if (!s) return "";
+    if (/^\/?uploads\/[A-Za-z0-9._-]+\.(?:jpe?g|png|webp)$/i.test(s)) return "/" + s.replace(/^\//, "");
     return /^data:image\/(?:jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=\r\n]+$/i.test(s) ? s : "";
   }
 
@@ -111,10 +115,12 @@
     const base = deepClone(SEED.config);
     const c = config && typeof config === "object" ? config : {};
     const chat = { ...base.chat, ...((c.chat && typeof c.chat === "object") ? c.chat : {}) };
+    const lowStock = parseInt(c.lowStockThreshold, 10);
     return {
       ...base,
       ...c,
       bannerImage: safeImageDataUrl(c.bannerImage || ""),
+      lowStockThreshold: (isNaN(lowStock) || lowStock < 0) ? (base.lowStockThreshold || 5) : Math.min(lowStock, 9999),
       closing: { ...base.closing, ...((c.closing && typeof c.closing === "object") ? c.closing : {}) },
       contact: { ...base.contact, ...((c.contact && typeof c.contact === "object") ? c.contact : {}) },
       chat: { ...chat, href: safeUrl(chat.href) },
@@ -300,6 +306,26 @@
     getCustomers: () => state.customers,
     getMetrics: () => state.metrics,
     getVisits: () => state.visits || { month: 0, prev: 0, total: 0 }, // conteo real (servidor)
+
+    // Sube una imagen (data URL) al servidor y devuelve su ruta ("uploads/xxx").
+    // Las imágenes se guardan como ARCHIVOS, no como base64 en el store (evita
+    // llenar el localStorage y aligera los guardados/POST).
+    uploadImage(dataUrl) {
+      if (ADMIN_MODE && !getAdminToken()) {
+        return Promise.reject(new Error("Ingresa el token de administrador."));
+      }
+      return fetch("/upload.php", {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ image: dataUrl })
+      }).then(function (r) {
+        if (r.status === 401) { clearStoredAdminToken(401); throw new Error("Token de administrador inválido."); }
+        return r.json();
+      }).then(function (j) {
+        if (!j || !j.ok || !j.url) throw new Error((j && j.error) || "No se pudo subir la imagen.");
+        return j.url;
+      });
+    },
 
     // ---- Guardado explícito ("Guardar cambios") ----
     hasPendingChanges: () => dirty,

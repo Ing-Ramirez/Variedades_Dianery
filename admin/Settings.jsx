@@ -9,12 +9,20 @@ function Field({ label, children, hint }) {
 /* Uploader de la imagen del banner (se reescala y guarda como data URL) */
 function BannerImage({ value, onChange }) {
   const inputRef = React.useRef(null);
+  const [busy, setBusy] = React.useState(false);
   const onFile = async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    try { onChange(await window.readImageFile(file)); }
-    catch (msg) { window.adminToast(typeof msg === "string" ? msg : "Formato de imagen no permitido"); }
+    setBusy(true);
+    try {
+      const dataUrl = await window.readImageFile(file);
+      const url = await window.DianeryData.uploadImage(dataUrl); // archivo, no base64
+      onChange(url);
+    } catch (msg) {
+      window.adminToast(typeof msg === "string" ? msg : (msg && msg.message) || "No se pudo subir la imagen");
+    }
     if (inputRef.current) inputRef.current.value = "";
+    setBusy(false);
   };
   return (
     <div className="field">
@@ -24,8 +32,8 @@ function BannerImage({ value, onChange }) {
           ? <div className="banner-preview" style={{ backgroundImage: `url(${value})` }} />
           : <div className="banner-preview empty"><span>Sin imagen · la tienda muestra un fondo neutro</span></div>}
         <div className="banner-uploader-actions">
-          <button type="button" className="btn btn-ghost" onClick={() => inputRef.current && inputRef.current.click()}>
-            <SI.plus />{value ? "Cambiar imagen" : "Subir imagen"}
+          <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => inputRef.current && inputRef.current.click()}>
+            <SI.plus />{busy ? "Subiendo…" : (value ? "Cambiar imagen" : "Subir imagen")}
           </button>
           {value && <button type="button" className="btn btn-ghost" onClick={() => onChange("")}>Quitar</button>}
         </div>
@@ -98,6 +106,11 @@ function Settings() {
               <Field label="Nombre de la tienda"><input className="input" value={f.brandName} onChange={e => set("brandName", e.target.value)} /></Field>
               <Field label="Eslogan / descriptor" hint="Aparece bajo el nombre en el encabezado y el footer.">
                 <input className="input" value={f.tagline} onChange={e => set("tagline", e.target.value)} />
+              </Field>
+              <Field label="Umbral de stock bajo" hint="Cuando el stock de un producto es igual o menor a este número, se marca como “stock bajo” en el Resumen y las tablas. 0 = nunca avisar.">
+                <input className="input" type="number" min="0" style={{ maxWidth: 160 }}
+                  value={f.lowStockThreshold != null ? f.lowStockThreshold : 5}
+                  onChange={e => set("lowStockThreshold", e.target.value)} />
               </Field>
             </div>
           )}

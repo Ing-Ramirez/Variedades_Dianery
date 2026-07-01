@@ -21,7 +21,7 @@ mkdir -p "$OUT/admin" "$OUT/components" "$OUT/uploads"
 
 # 1) Copia los archivos publicables (mismo set que el deploy).
 cp index.html index.php og-image.php sitemap.php robots.txt app.jsx config.js \
-   dianery-data.js footer.css styles.css tweaks-panel.jsx favicon.svg api.php db.php hit.php "$OUT/"
+   dianery-data.js footer.css styles.css tweaks-panel.jsx favicon.svg api.php db.php hit.php img.php upload.php migrate-images.php "$OUT/"
 cp -r admin/. "$OUT/admin/"
 cp -r components/. "$OUT/components/"
 [ -d uploads ] && cp -r uploads/. "$OUT/uploads/" || true

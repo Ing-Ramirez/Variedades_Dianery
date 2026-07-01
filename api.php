@@ -17,6 +17,7 @@ header('Pragma: no-cache');
 header('X-Content-Type-Options: nosniff');
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/img.php';
 
 $file = __DIR__ . '/data.json';
 $method = $_SERVER['REQUEST_METHOD'];
@@ -121,7 +122,8 @@ function sanitize_config($config) {
         'tagline' => str_value($config['tagline'] ?? 'Tienda de variedades', 160),
         'bannerKicker' => str_value($config['bannerKicker'] ?? '', 160),
         'bannerTitle' => str_value($config['bannerTitle'] ?? '', 240),
-        'bannerImage' => safe_image_data_url($config['bannerImage'] ?? ''),
+        'bannerImage' => dianery_safe_image_ref($config['bannerImage'] ?? ''),
+        'lowStockThreshold' => max(0, min(9999, int_value($config['lowStockThreshold'] ?? 5))),
         'closing' => [
             'enabled' => bool_value($closing['enabled'] ?? true),
             'kicker' => str_value($closing['kicker'] ?? '', 160),
@@ -152,7 +154,7 @@ function sanitize_products($products) {
         if (!is_array($p)) continue;
         $images = [];
         foreach (array_slice(($p['images'] ?? []), 0, 5) as $img) {
-            $safe = safe_image_data_url($img);
+            $safe = dianery_safe_image_ref($img);
             if ($safe !== '') $images[] = $safe;
         }
         $out[] = [

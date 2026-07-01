@@ -34,6 +34,12 @@ if (is_array($data)) {
     }
 }
 
+// Imagen guardada como archivo → redirige al archivo (el crawler lo descarga directo).
+if (preg_match('#^/?uploads/[A-Za-z0-9._-]+\.(?:jpe?g|png|webp)$#i', $dataUrl)) {
+    header('Location: /' . ltrim($dataUrl, '/'));
+    exit;
+}
+
 if (preg_match('#^data:(image/(?:jpeg|jpg|png|webp));base64,([A-Za-z0-9+/=\r\n]+)$#', $dataUrl, $m)) {
     $declared = strtolower($m[1]);
     if ($declared === 'image/jpg') $declared = 'image/jpeg';

@@ -26,7 +26,8 @@ function Dashboard({ go }) {
   const ticketMonth = monthOrders.length ? Math.round(salesMonth / monthOrders.length) : 0;
   const ticketPrev = prevOrders.length ? Math.round(salesPrev / prevOrders.length) : 0;
   const openOrders = orders.filter(o => o.status === "Nuevo" || o.status === "Preparando").length;
-  const lowStock = products.filter(p => p.stock <= 5).sort((a, b) => a.stock - b.stock);
+  const lowT = (() => { const t = (data.getConfig() || {}).lowStockThreshold; return t != null ? t : 5; })();
+  const lowStock = products.filter(p => p.stock <= lowT).sort((a, b) => a.stock - b.stock);
 
   // % de cambio mes vs. mes anterior; null = sin base para comparar (oculta el delta).
   const mkDelta = (cur, prev) => {

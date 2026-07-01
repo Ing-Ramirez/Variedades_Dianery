@@ -40,20 +40,28 @@ window.readImageFile = readImageFile;   // compartido con Settings (uploader de 
 function ImageManager({ images, onChange }) {
   const inputRef = React.useRef(null);
   const MAX = window.DianeryData.MAX_IMAGES;
+  const [busy, setBusy] = React.useState(false);
 
   const addFiles = async (fileList) => {
     const files = Array.from(fileList);
     if (!files.length) return;
     const room = MAX - images.length;
     if (room <= 0) { window.adminToast("Máximo " + MAX + " imágenes por producto"); return; }
+    setBusy(true);
     const next = [...images];
     for (const file of files.slice(0, room)) {
-      try { next.push(await readImageFile(file)); }
-      catch (msg) { window.adminToast(typeof msg === "string" ? msg : "Formato de imagen no permitido"); }
+      try {
+        const dataUrl = await readImageFile(file);              // reescala en el navegador
+        const url = await window.DianeryData.uploadImage(dataUrl); // sube el archivo, guarda solo la URL
+        next.push(url);
+      } catch (msg) {
+        window.adminToast(typeof msg === "string" ? msg : (msg && msg.message) || "No se pudo subir la imagen");
+      }
     }
     if (files.length > room) window.adminToast("Máximo " + MAX + " imágenes por producto");
     if (next.length !== images.length) onChange(next);
     if (inputRef.current) inputRef.current.value = "";
+    setBusy(false);
   };
 
   const move = (i, dir) => {
@@ -83,8 +91,8 @@ function ImageManager({ images, onChange }) {
           </div>
         ))}
         {images.length < MAX && (
-          <button type="button" className="img-add" onClick={() => inputRef.current && inputRef.current.click()}>
-            <PI.plus /><span>Agregar</span>
+          <button type="button" className="img-add" disabled={busy} onClick={() => inputRef.current && inputRef.current.click()}>
+            <PI.plus /><span>{busy ? "Subiendo…" : "Agregar"}</span>
           </button>
         )}
       </div>
